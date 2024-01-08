@@ -19,19 +19,24 @@ a named \code{list} when \code{info_type = "meta"}. Returns \code{NULL} in case 
 unavailable.
 }
 \description{
-\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}} Collect a list of products and some brief
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Collect a list of products and some brief
 descriptions for marine products available from Copernicus
 }
 \examples{
-\donttest{
+\dontrun{
 copernicus_products_list()
 
 ## Query a specific product:
-copernicus_products_list(freeText = "GLOBAL_ANALYSIS_FORECAST_BIO_001_028")
+copernicus_products_list(freeText = "GLOBAL_ANALYSISFORECAST_PHY_001_024")
 }
 }
 \seealso{
 Other product-functions: 
+\code{\link{cms_cite_product}()},
+\code{\link{cms_product_details}()},
+\code{\link{cms_product_metadata}()},
+\code{\link{cms_product_services}()},
+\code{\link{cms_products_list}()},
 \code{\link{copernicus_cite_product}()},
 \code{\link{copernicus_product_details}()},
 \code{\link{copernicus_product_metadata}()}

@@ -20,11 +20,11 @@ copernicus_download_motu(
 )
 }
 \arguments{
-\item{username}{Your Copernicus marine user name. Can be provided as \code{option(CopernicusMarine_uid = "my_user_name")},
-or as argument here.}
+\item{username}{Your Copernicus marine user name. Can be provided as
+\code{options(CopernicusMarine_uid = "my_user_name")}, or as argument here.}
 
-\item{password}{Your Copernicus marine password. Can be provided as \code{option(CopernicusMarine_pwd = "my_password")},
-or as argument here.}
+\item{password}{Your Copernicus marine password. Can be provided as
+\code{options(CopernicusMarine_pwd = "my_password")}, or as argument here.}
 
 \item{destination}{File or path where the requested file will be downloaded to.}
 
@@ -58,15 +58,14 @@ Returns a \code{logical} value invisibly indicating whether the requested file w
 successfully stored at the \code{destination}.
 }
 \description{
-\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}} Subset and download a specific marine product from Copernicus.
-This particular function uses the MOTU server for this purpose. You need to register an account
-at \url{https://data.marine.copernicus.eu} before you can use this function.
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} The MOTU servers will be discontinued by Copernicus Marine Services. Use \code{\link[=cms_download_subset]{cms_download_subset()}}
+instead to download subsets.
 }
 \examples{
 \dontrun{
 destination <- tempfile("copernicus", fileext = ".nc")
 
-## Assuming that Copernicus account details are provided as `option`
+## Assuming that Copernicus account details are provided as `options`
 copernicus_download_motu(
   destination   = destination,
   product       = "GLOBAL_ANALYSISFORECAST_PHY_001_024",

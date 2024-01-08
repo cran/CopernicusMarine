@@ -19,11 +19,11 @@ Can be obtained with \code{\link{copernicus_product_details}}.}
 Returns a named \code{list} with properties of the requested product.
 }
 \description{
-\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}} Obtain details for a specific Copernicus marine product. This can be
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Obtain details for a specific Copernicus marine product. This can be
 narrowed down to specific layers and/or variables within the product.
 }
 \examples{
-\donttest{
+\dontrun{
 copernicus_product_details("GLOBAL_ANALYSISFORECAST_PHY_001_024")
 
 copernicus_product_details(
@@ -35,6 +35,11 @@ copernicus_product_details(
 }
 \seealso{
 Other product-functions: 
+\code{\link{cms_cite_product}()},
+\code{\link{cms_product_details}()},
+\code{\link{cms_product_metadata}()},
+\code{\link{cms_product_services}()},
+\code{\link{cms_products_list}()},
 \code{\link{copernicus_cite_product}()},
 \code{\link{copernicus_product_metadata}()},
 \code{\link{copernicus_products_list}()}
