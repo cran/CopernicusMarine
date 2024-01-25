@@ -2,8 +2,8 @@ Package: CopernicusMarine
 Type: Package
 Title: Search Download and Handle Data from Copernicus Marine Service
         Information
-Version: 0.2.0
-Date: 2024-01-01
+Version: 0.2.3
+Date: 2024-01-25
 Authors@R: c(person("Pepijn", "de Vries", role = c("aut", "cre", "dtc"),
     email = "pepijn.devries@outlook.com",
     comment = c(ORCID = "0000-0002-7961-6646")))
@@ -34,6 +34,6 @@ Collate: 'CopernicusMarine-package.r' 'cms_cite_product.r'
         'copernicus_product_metadata.r' 'copernicus_products_list.r'
         'ftp.r' 'generics.r' 'import.r' 'wms.r'
 NeedsCompilation: no
-Packaged: 2024-01-01 17:41:41 UTC; vries171
+Packaged: 2024-01-25 15:59:36 UTC; vries171
 Repository: CRAN
-Date/Publication: 2024-01-08 07:40:06 UTC
+Date/Publication: 2024-01-25 16:10:06 UTC

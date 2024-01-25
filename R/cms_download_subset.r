@@ -17,7 +17,8 @@
 #' @param timerange A `vector` with two elements (lower and upper value)
 #' for a requested time range. The `vector` should be coercible to `POSIXct`.
 #' @param verticalrange A `vector` with two elements (minimum and maximum)
-#' numerical values for the depth of the vertical layers (if any).
+#' numerical values for the depth of the vertical layers (if any). Note that values below the
+#' sea surface needs to be specified as negative values.
 #' @param overwrite A `logical` value. When `FALSE` (default), files at the `destination` won't be
 #' overwritten when the exist. Instead an error will be thrown if this is the case. When set to
 #' `TRUE`, existing files will be overwritten.
@@ -37,7 +38,7 @@
 #'   variable      = "sea_water_velocity",
 #'   region        = c(-1, 50, 10, 55),
 #'   timerange     = c("2021-01-01 UTC", "2021-01-02 UTC"),
-#'   verticalrange = c(0, 2)
+#'   verticalrange = c(0, -2)
 #' )
 #' 
 #' mydata <- stars::read_stars(destination)
@@ -58,6 +59,8 @@ cms_download_subset <- function(
     verticalrange,
     overwrite = FALSE) {
 
+  if (dir.exists(destination))
+    stop("Destination should be a filename not a path")
   if (!overwrite & file.exists(destination))
     stop("Destination file already exists. Set 'overwrite' to TRUE to proceed.")
   
@@ -74,33 +77,30 @@ cms_download_subset <- function(
     variable[var_check2]
   ) |> unique()
 
-  payload <- c("lonMin", "latMin", "lonMax", "latMax", "timeMin", "timeMax",
-               "elevationMin", "elevationMax", "extraVariableIds")
+  scalar <- function(x) structure(x, class = "scalar")
   payload <- list(
-    datasetId    = product,
-    subdatasetId = layer,
-    variableIds  = variable,
-    subsetValues = structure(purrr::map(seq_along(payload),
-                                        ~structure(list(), names = character(0))),
-                             names = payload))
+    datasetId    = scalar(product),
+    subdatasetId = scalar(layer),
+    variableIds  = variable)
+  
   payload[["subsetValues"]][["extraVariableIds"]] <- variable
   
   if (!missing(region)) {
-    payload[["subsetValues"]][["lonMin"]] <- region[[1]]
-    payload[["subsetValues"]][["latMin"]] <- region[[2]]
-    payload[["subsetValues"]][["lonMax"]] <- region[[3]]
-    payload[["subsetValues"]][["latMax"]] <- region[[4]]
+    payload[["subsetValues"]][["lonMin"]] <- scalar(region[[1]])
+    payload[["subsetValues"]][["latMin"]] <- scalar(region[[2]])
+    payload[["subsetValues"]][["lonMax"]] <- scalar(region[[3]])
+    payload[["subsetValues"]][["latMax"]] <- scalar(region[[4]])
   }
   if (!missing(timerange)) {
     timerange <- timerange |>
       as.POSIXct(tz = "UTC") |>
       as.numeric(origin = "1970-01-01 UTC")*1000
-    payload[["subsetValues"]][["timeMin"]] <- timerange[[1]]
-    payload[["subsetValues"]][["timeMax"]] <- timerange[[2]]
+    payload[["subsetValues"]][["timeMin"]] <- scalar(timerange[[1]])
+    payload[["subsetValues"]][["timeMax"]] <- scalar(timerange[[2]])
   }
   if (!missing(verticalrange)) {
-    payload[["subsetValues"]][["elevationMin"]] <- verticalrange[[1]]
-    payload[["subsetValues"]][["elevationMax"]] <- verticalrange[[2]]
+    payload[["subsetValues"]][["elevationMin"]] <- scalar(verticalrange[[1]])
+    payload[["subsetValues"]][["elevationMax"]] <- scalar(verticalrange[[2]])
   }
   
   job <-
@@ -108,7 +108,7 @@ cms_download_subset <- function(
       base_url |>
         httr2::request() |>
         httr2::req_auth_basic(username, password) |>
-        httr2::req_body_json(payload) |>
+        httr2::req_body_json(payload, auto_unbox = FALSE) |>
         httr2::req_perform()
     }, "subset-job")
   if (is.null(job)) return(invisible(FALSE))
@@ -128,6 +128,11 @@ cms_download_subset <- function(
     
     if (job_check$finished) break
     Sys.sleep(0.5)
+  }
+
+  if (is.null(job_check$url)) {
+    message(job_check$`_errorDescription`)
+    return(invisible(FALSE))
   }
   
   message(crayon::white("Downloading file..."))
