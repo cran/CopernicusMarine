@@ -1,6 +1,6 @@
 #' Obtain a WMTS entry for specific Copernicus marine products and add to a leaflet map
 #'
-#' `r lifecycle::badge('stable')` Functions for retrieving Web Map Tile Services infromation for
+#' `r lifecycle::badge('stable')` Functions for retrieving Web Map Tile Services information for
 #' specific products, layers and variables and add them to a `leaflet` map.
 #' @include cms_download_subset.r
 #' @inheritParams cms_download_subset
@@ -18,16 +18,16 @@
 #' @rdname cms_wmts
 #' @name cms_wmts_details
 #' @examples
-#' \donttest{
-#' cms_wmts_details(
-#'   product  = "GLOBAL_ANALYSISFORECAST_PHY_001_024",
-#'   layer    = "cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m",
-#'   variable = "thetao"
-#' )
+#' wmts_details <-
+#'   cms_wmts_details(
+#'     product  = "GLOBAL_ANALYSISFORECAST_PHY_001_024",
+#'     layer    = "cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m",
+#'     variable = "thetao"
+#'   )
 #' 
 #' cms_wmts_get_capabilities("GLOBAL_ANALYSISFORECAST_PHY_001_024")
 #' 
-#' if (interactive()) {
+#' if (interactive() && nrow(wmts_details) > 0) {
 #'   leaflet::leaflet() |>
 #'     leaflet::setView(lng = 3, lat = 54, zoom = 4) |>
 #'     leaflet::addProviderTiles("Esri.WorldImagery") |>
@@ -35,7 +35,6 @@
 #'       product  = "GLOBAL_ANALYSISFORECAST_PHY_001_024",
 #'       layer    = "cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m",
 #'       variable = "thetao")
-#' }
 #' }
 #' @author Pepijn de Vries
 #' @export
@@ -45,11 +44,12 @@ cms_wmts_details <- function(product, layer, variable) {
       "info",
       "WMTS:https://wmts.marine.copernicus.eu/teroWmts/%s?request=GetCapabilities" |>
         sprintf(product),
-      quiet = TRUE)
-  desc <- copwmtsinfo |> stringr::str_match_all("SUBDATASET_(\\d)_DESC=(.*?)\n")
+      quiet = TRUE) |>
+    suppressWarnings()
+  desc <- copwmtsinfo |> stringr::str_match_all("SUBDATASET_(\\d+)_DESC=(.*?)\n")
   if (length(desc) == 0) return(dplyr::tibble(desc = character(0), url = character(0)))
   desc <- desc[[1]][,3]
-  url  <- copwmtsinfo |> stringr::str_match_all("SUBDATASET_(\\d)_NAME=(.*?)\n")
+  url  <- copwmtsinfo |> stringr::str_match_all("SUBDATASET_(\\d+)_NAME=(.*?)\n")
   url  <- url[[1]][,3]
   result <- dplyr::bind_cols(desc = desc, url = url)
   
@@ -73,7 +73,14 @@ addCmsWMTSTiles <- function(
   
   detail <- cms_wmts_details(product, layer, variable)
   detail <- detail$url |> strsplit(",") |> unlist()
-  detail <- detail[startsWith(detail, "layer=")]
+  detail <- detail[startsWith(detail, "layer=")] |> unique()
+  if (length(detail) == 0) rlang::abort(
+    c(x = "Could not find a WMTS URL",
+      i = "Check your parameter settings"))
+  if (length(detail) > 1) rlang::abort(
+    c(x = "Found ambiguous WMTS URLs",
+      i = "Check your parameter settings"))
+  
   leaflet::addTiles(
     map = map,
     urlTemplate =
@@ -97,11 +104,14 @@ cms_wmts_get_capabilities <- function(product, layer, variable, type = c("list",
   set <- c(product, layer, variable) |>
     paste0(collapse = "/")
   result <-
-    .wmts_base_url |>
-    paste0(product, "/", .wmts_req, "GetCapabilities&layer=", set) |>
-    httr2::request() |>
-    httr2::req_perform() |>
-    httr2::resp_body_xml()
+    .try_online({
+      .wmts_base_url |>
+        paste0(product, "/", .wmts_req, "GetCapabilities&layer=", set) |>
+        httr2::request() |>
+        httr2::req_perform()
+    }, "wmts.marine.copernicus.eu")
+  if (is.null(result)) return(NULL)
+  result <- httr2::resp_body_xml(result)
   if (type == "list") result <- xml2::as_list(result)
   return(result)
 }

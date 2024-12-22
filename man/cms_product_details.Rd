@@ -18,7 +18,7 @@ Can be obtained with \code{\link{cms_products_list}}.}
 \item{layer}{The name of a desired layer within a product (type \code{character}). Can be obtained with \code{\link{cms_product_details}}.}
 
 \item{variable}{The name of a desired variable in a specific layer of a product (type \code{character}).
-Can be obtained with \code{\link{copernicus_product_details}}.}
+Can be obtained with \code{\link{cms_product_details}}.}
 
 \item{variant}{A \code{character} string indicating the type of details that should be returned.
 Should be one of \code{""} (default), \code{"detailed-v2"}, or \code{"detailed-v3"}.}
@@ -31,7 +31,6 @@ Returns a named \code{list} with properties of the requested product.
 narrowed down to specific layers and/or variables within the product.
 }
 \examples{
-\donttest{
 cms_product_details("GLOBAL_ANALYSISFORECAST_PHY_001_024")
 
 cms_product_details(
@@ -40,17 +39,12 @@ cms_product_details(
   variable = "thetao"
 )
 }
-}
 \seealso{
 Other product-functions: 
 \code{\link{cms_cite_product}()},
 \code{\link{cms_product_metadata}()},
 \code{\link{cms_product_services}()},
-\code{\link{cms_products_list}()},
-\code{\link{copernicus_cite_product}()},
-\code{\link{copernicus_product_details}()},
-\code{\link{copernicus_product_metadata}()},
-\code{\link{copernicus_products_list}()}
+\code{\link{cms_products_list}()}
 }
 \author{
 Pepijn de Vries

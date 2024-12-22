@@ -8,15 +8,13 @@
 #' @returns Returns a `tibble` with a list of available services for a
 #' Copernicus marine `product`.
 #' @examples
-#' \donttest{
 #' cms_product_services("GLOBAL_ANALYSISFORECAST_PHY_001_024")
-#' }
 #' @family product-functions
 #' @author Pepijn de Vries
 #' @export
 cms_product_services <- function(product) {
   result <- cms_product_metadata(product, "xml")
-  
+  if (is.null(result)) return (NULL)
   result <-
     result |>
     xml2::xml_find_all("//gmd:CI_OnlineResource") |>
@@ -33,6 +31,6 @@ cms_product_services <- function(product) {
     dplyr::rename(!!"layer" := "name") |>
     dplyr::filter(!is.na(.data$protocol) & !is.na(.data$layer)) |>
     tidyr::pivot_wider(id_cols = c("layer", "ext"),
-                       names_from = "protocol", values_from = "linkage")
+                       names_from = "protocol", values_from = "linkage", values_fn = list)
   return(result)
 }

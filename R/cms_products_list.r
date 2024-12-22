@@ -14,12 +14,10 @@
 #' @name cms_products_list
 #' @family product-functions
 #' @examples
-#' \donttest{
 #' cms_products_list()
 #' 
 #' ## Query a specific product:
 #' cms_products_list(freeText = "GLOBAL_ANALYSISFORECAST_PHY_001_024")
-#' }
 #' @author Pepijn de Vries
 #' @export
 cms_products_list <- function(..., info_type = c("list", "meta")) {
@@ -89,4 +87,5 @@ cms_products_list <- function(..., info_type = c("list", "meta")) {
   offset        = 0,
   size          = 1000,
   variant       = "summary",
-  includeOmis   = TRUE)
+  includeOmis   = TRUE,
+  `__myOcean__` = TRUE)

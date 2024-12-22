@@ -19,20 +19,14 @@ listed at Copernicus. Note that the citing formatting does not appear to be stan
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}} Get details for properly citing a Copernicus product.
 }
 \examples{
-\donttest{
 cms_cite_product("SST_MED_PHY_SUBSKIN_L4_NRT_010_036")
-}
 }
 \seealso{
 Other product-functions: 
 \code{\link{cms_product_details}()},
 \code{\link{cms_product_metadata}()},
 \code{\link{cms_product_services}()},
-\code{\link{cms_products_list}()},
-\code{\link{copernicus_cite_product}()},
-\code{\link{copernicus_product_details}()},
-\code{\link{copernicus_product_metadata}()},
-\code{\link{copernicus_products_list}()}
+\code{\link{cms_products_list}()}
 }
 \author{
 Pepijn de Vries

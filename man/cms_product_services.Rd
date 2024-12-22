@@ -19,20 +19,14 @@ Copernicus marine \code{product}.
 for a specific marine product.
 }
 \examples{
-\donttest{
 cms_product_services("GLOBAL_ANALYSISFORECAST_PHY_001_024")
-}
 }
 \seealso{
 Other product-functions: 
 \code{\link{cms_cite_product}()},
 \code{\link{cms_product_details}()},
 \code{\link{cms_product_metadata}()},
-\code{\link{cms_products_list}()},
-\code{\link{copernicus_cite_product}()},
-\code{\link{copernicus_product_details}()},
-\code{\link{copernicus_product_metadata}()},
-\code{\link{copernicus_products_list}()}
+\code{\link{cms_products_list}()}
 }
 \author{
 Pepijn de Vries

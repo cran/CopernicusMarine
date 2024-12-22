@@ -2,8 +2,7 @@ Package: CopernicusMarine
 Type: Package
 Title: Search Download and Handle Data from Copernicus Marine Service
         Information
-Version: 0.2.3
-Date: 2024-01-25
+Version: 0.2.4
 Authors@R: c(person("Pepijn", "de Vries", role = c("aut", "cre", "dtc"),
     email = "pepijn.devries@outlook.com",
     comment = c(ORCID = "0000-0002-7961-6646")))
@@ -15,10 +14,11 @@ Description: Subset and download data from EU Copernicus Marine
     Import data on the oceans physical and biogeochemical state
     from Copernicus into R without the need of external software.
 Depends: R (>= 4.1.0)
-Imports: crayon, dplyr, httr2, leaflet, purrr, readr, rlang, rvest, sf,
-        stringr, tidyr, utils, xml2
+Imports: crayon, dplyr, httr2, leaflet, purrr, rlang, sf, stringr,
+        tidyr, utils, xml2
 Suggests: lifecycle, ncmeta, stars, testthat (>= 3.0.0)
-URL: https://github.com/pepijn-devries/CopernicusMarine
+URL: https://github.com/pepijn-devries/CopernicusMarine,
+        https://pepijn-devries.github.io/CopernicusMarine/
 BugReports: https://github.com/pepijn-devries/CopernicusMarine/issues
 License: GPL (>= 3)
 Encoding: UTF-8
@@ -29,11 +29,8 @@ Collate: 'CopernicusMarine-package.r' 'cms_cite_product.r'
         'cms_list_stac_files.r' 'cms_product_details.r'
         'cms_product_metadata.r' 'cms_product_services.r'
         'cms_products_list.r' 'cms_stac_properties.r' 'cms_wmts.r'
-        'copernicus_cite_product.r' 'copernicus_download_motu.r'
-        'copernicus_login.r' 'copernicus_product_details.r'
-        'copernicus_product_metadata.r' 'copernicus_products_list.r'
-        'ftp.r' 'generics.r' 'import.r' 'wms.r'
+        'generics.r' 'import.r'
 NeedsCompilation: no
-Packaged: 2024-01-25 15:59:36 UTC; vries171
+Packaged: 2024-12-22 18:29:20 UTC; vries171
 Repository: CRAN
-Date/Publication: 2024-01-25 16:10:06 UTC
+Date/Publication: 2024-12-22 23:20:02 UTC
