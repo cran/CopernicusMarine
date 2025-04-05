@@ -1,6 +1,6 @@
-c6b17637a33c6852f11bf47c2c4ac12e *DESCRIPTION
+f6a7858ad0325102fc2d82168caec6a9 *DESCRIPTION
 0a3e23f242fa2efed8cbfd36d51ba1f9 *NAMESPACE
-ef6e71fa040ea8e9eceab257500c6928 *NEWS.md
+1dddd70f6e205117ce8617c2cbfbd264 *NEWS.md
 a7f0b396413d68d17ba802a74547324d *R/CopernicusMarine-package.r
 76480cac2559eed1f15d08b174744935 *R/cms_cite_product.r
 6dd6decc8c60fee5136816aa36a5f7af *R/cms_download_stac.r
@@ -10,12 +10,12 @@ fb5254685d19ae8573e259347a46929e *R/cms_list_stac_files.r
 b3df3a7dfbd4939cd7e4f8f82b22770f *R/cms_product_details.r
 591baeda937fa9e1da249911efbe6c6e *R/cms_product_metadata.r
 74a50e0612dcee869d2d68a6afa2812c *R/cms_product_services.r
-f4f97321593c81dbda8eb664bfdce7a1 *R/cms_products_list.r
+eb628cd8bf0433ffa317517edb0ec988 *R/cms_products_list.r
 6429a3d208c50de97ac1898f01bf38d7 *R/cms_stac_properties.r
 d56ead2e9ae80229f7f02f1b524285e2 *R/cms_wmts.r
 ff7f616cedd1592b0b5c8f01d94f761d *R/generics.r
 ae20241a4bbf822bce0d4a0c07d40f42 *R/import.r
-1e9ebc15e93a7b781371cc58f83ab84a *README.md
+3f6a900d30f9bfaadcbf119a2fa183a3 *README.md
 907b8fa669c9636085b66666d1dc57ac *man/CopernicusMarine-package.Rd
 fbe3aa44de8f024bb90283598ce4e264 *man/cms_cite_product.Rd
 f73aad587abf384eb51789ac6105a742 *man/cms_download_subset.Rd
@@ -27,7 +27,7 @@ d6ed4dd42cd1eeb775028fcbc8a0abaa *man/cms_product_services.Rd
 cdf4d376bb59ce771fa126608a382789 *man/cms_stac.Rd
 323fbe3c975651ef7250aa8d334099f0 *man/cms_wmts.Rd
 f8422c16116908b5cb4d481d040ae945 *man/figures/README-download-subset-1.png
-8299cdcb5acaad1fd970fda12ad9e223 *man/figures/README-leaflet-1.png
+496d2bec143a6287f2409b366571bec7 *man/figures/README-leaflet-1.png
 cb1e46f469cfbbbde29c8b5113e1d789 *man/figures/lifecycle-archived.svg
 c0d2e5a54f1fa4ff02bf9533079dd1f7 *man/figures/lifecycle-defunct.svg
 a1b8c987c676c16af790f563f96cbb1f *man/figures/lifecycle-deprecated.svg
