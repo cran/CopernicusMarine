@@ -1,3 +1,14 @@
+CopernicusMarine v0.2.6
+-------------
+
+ * Decommissioned STAC functions in order to
+   pass pass CRAN checks.
+ * Implemented `cms_list_native_files()` and `csm_download_native()`
+   as alternatives to STAC.
+ * Updated login routine
+ * Improved test coverage
+ * Added code of conduct
+
 CopernicusMarine v0.2.5
 -------------
 

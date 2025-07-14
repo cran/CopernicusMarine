@@ -17,6 +17,7 @@
 #' of `type`. `AddCmsWMTSTiles` returns a `leaflet` `map` updated with the requested tiles.
 #' @rdname cms_wmts
 #' @name cms_wmts_details
+#' @include generics.r
 #' @examples
 #' wmts_details <-
 #'   cms_wmts_details(
@@ -42,8 +43,9 @@ cms_wmts_details <- function(product, layer, variable) {
   copwmtsinfo <-
     sf::gdal_utils(
       "info",
-      "WMTS:https://wmts.marine.copernicus.eu/teroWmts/%s?request=GetCapabilities" |>
-        sprintf(product),
+      sprintf(
+        "WMTS:%s%s?request=GetCapabilities",
+        .wmts_base_url, product),
       quiet = TRUE) |>
     suppressWarnings()
   desc <- copwmtsinfo |> stringr::str_match_all("SUBDATASET_(\\d+)_DESC=(.*?)\n")
@@ -73,10 +75,11 @@ addCmsWMTSTiles <- function(
   
   detail <- cms_wmts_details(product, layer, variable)
   detail <- detail$url |> strsplit(",") |> unlist()
-  detail <- detail[startsWith(detail, "layer=")] |> unique()
+
   if (length(detail) == 0) rlang::abort(
     c(x = "Could not find a WMTS URL",
-      i = "Check your parameter settings"))
+      i = "Check your parameter settings")) else
+        detail <- detail[startsWith(detail, "layer=")] |> unique()
   if (length(detail) > 1) rlang::abort(
     c(x = "Found ambiguous WMTS URLs",
       i = "Check your parameter settings"))

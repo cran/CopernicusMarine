@@ -2,35 +2,36 @@ Package: CopernicusMarine
 Type: Package
 Title: Search Download and Handle Data from Copernicus Marine Service
         Information
-Version: 0.2.5
+Version: 0.2.6
 Authors@R: c(person("Pepijn", "de Vries", role = c("aut", "cre", "dtc"),
     email = "pepijn.devries@outlook.com",
     comment = c(ORCID = "0000-0002-7961-6646")))
-Author: Pepijn de Vries [aut, cre, dtc]
-    (<https://orcid.org/0000-0002-7961-6646>)
+Author: Pepijn de Vries [aut, cre, dtc] (ORCID:
+    <https://orcid.org/0000-0002-7961-6646>)
 Maintainer: Pepijn de Vries <pepijn.devries@outlook.com>
 Description: Subset and download data from EU Copernicus Marine
     Service Information: <https://data.marine.copernicus.eu>.
     Import data on the oceans physical and biogeochemical state
     from Copernicus into R without the need of external software.
 Depends: R (>= 4.1.0)
-Imports: crayon, dplyr, httr2, leaflet, purrr, rlang, sf, stringr,
-        tidyr, utils, xml2
+Imports: aws.s3, cli, dplyr, httr2, leaflet, purrr, rlang, sf, stringr,
+        tibble, tidyr, xml2
 Suggests: lifecycle, ncmeta, stars, testthat (>= 3.0.0)
 URL: https://github.com/pepijn-devries/CopernicusMarine,
         https://pepijn-devries.github.io/CopernicusMarine/
 BugReports: https://github.com/pepijn-devries/CopernicusMarine/issues
 License: GPL (>= 3)
 Encoding: UTF-8
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.2
 Config/testthat/edition: 3
-Collate: 'CopernicusMarine-package.r' 'cms_cite_product.r'
+Collate: 'CopernicusMarine-package.r' 'cms_catalogue_entry.R'
+        'cms_cite_product.r' 'cms_download_native.R'
         'cms_download_stac.r' 'cms_login.r' 'cms_download_subset.r'
         'cms_list_stac_files.r' 'cms_product_details.r'
         'cms_product_metadata.r' 'cms_product_services.r'
-        'cms_products_list.r' 'cms_stac_properties.r' 'cms_wmts.r'
-        'generics.r' 'import.r'
+        'cms_products_list.r' 'cms_stac_properties.r' 'generics.r'
+        'cms_wmts.r' 'import.r'
 NeedsCompilation: no
-Packaged: 2025-04-04 09:21:44 UTC; vries171
+Packaged: 2025-07-14 08:20:17 UTC; vries171
 Repository: CRAN
-Date/Publication: 2025-04-05 15:10:09 UTC
+Date/Publication: 2025-07-14 12:30:10 UTC
