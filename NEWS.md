@@ -1,3 +1,10 @@
+CopernicusMarine v0.3.0
+-------------
+
+ * `cms_download_subset()` is operational again!
+ * Some fixes in native download routines
+ * Improved test coverage
+
 CopernicusMarine v0.2.6
 -------------
 

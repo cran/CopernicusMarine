@@ -4,15 +4,11 @@
 \alias{cms_product_details}
 \title{Obtain details for a specific Copernicus marine product}
 \usage{
-cms_product_details(product, layer, variant, ...)
+cms_product_details(product, ...)
 }
 \arguments{
 \item{product}{An identifier (type \code{character}) of the desired Copernicus marine product.
 Can be obtained with \code{\link{cms_products_list}}.}
-
-\item{layer}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Ignored and deprecated}
-
-\item{variant}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Ignored and deprecated}
 
 \item{...}{Ignored}
 }
@@ -20,7 +16,7 @@ Can be obtained with \code{\link{cms_products_list}}.}
 Returns a named \code{list} with product details.
 }
 \description{
-\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}} Obtain details for a specific Copernicus marine product.
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}} Obtain details for a specific Copernicus marine product.
 }
 \examples{
 if (interactive()) {

@@ -14,7 +14,8 @@ In case of success it returns a named \code{list} with information about the ava
 Copernicus Marine clients.
 }
 \description{
-This function retrieves the client information from the Copernicus Marine Service.
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}} This function retrieves the client information
+from the Copernicus Marine Service.
 Among others, it lists where to find the catalogues required by this package
 }
 \examples{
