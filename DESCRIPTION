@@ -2,7 +2,7 @@ Package: CopernicusMarine
 Type: Package
 Title: Search Download and Handle Data from Copernicus Marine Service
         Information
-Version: 0.3.0
+Version: 0.3.1
 Authors@R: c(person("Pepijn", "de Vries", role = c("aut", "cre", "dtc"),
     email = "pepijn.devries@outlook.com",
     comment = c(ORCID = "0000-0002-7961-6646")))
@@ -14,9 +14,10 @@ Description: Subset and download data from EU Copernicus Marine
     Import data on the oceans physical and biogeochemical state
     from Copernicus into R without the need of external software.
 Depends: R (>= 4.1.0)
-Imports: aws.s3, blosc, cli, dplyr, httr2, leaflet, lubridate, purrr,
-        rlang, sf, stars, stringr, tibble, tidyr, units, xml2
-Suggests: cubelyr, lifecycle, ncmeta, spelling, testthat (>= 3.0.0)
+Imports: aws.s3, cli, dplyr, httr2, leaflet, lubridate, purrr, rlang,
+        sf, stars, stringr, tibble, tidyr, units, xml2
+Suggests: blosc, cubelyr, lifecycle, ncmeta, spelling, testthat (>=
+        3.0.0)
 URL: https://github.com/pepijn-devries/CopernicusMarine,
         https://pepijn-devries.github.io/CopernicusMarine/
 BugReports: https://github.com/pepijn-devries/CopernicusMarine/issues
@@ -31,6 +32,6 @@ Collate: 'CopernicusMarine-package.r' 'cms_catalogue_entry.R'
         'cms_products_list.r' 'generics.r' 'cms_wmts.r' 'import.r'
 Language: en-US
 NeedsCompilation: no
-Packaged: 2025-09-11 20:41:53 UTC; vries171
+Packaged: 2025-09-27 11:24:49 UTC; vries171
 Repository: CRAN
-Date/Publication: 2025-09-11 22:10:02 UTC
+Date/Publication: 2025-09-27 23:10:26 UTC

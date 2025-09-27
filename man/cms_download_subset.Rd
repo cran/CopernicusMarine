@@ -17,6 +17,7 @@ cms_download_subset(
   overwrite = FALSE,
   progress = TRUE,
   crop = TRUE,
+  asset,
   ...
 )
 }
@@ -61,6 +62,12 @@ will download chunks that overlap with the specified ranges, but often
 covers a larger area. When \code{crop = TRUE} (default), the data will be cropped
 to the specified \code{region}. If set to \code{FALSE} all downloaded data will be returned.}
 
+\item{asset}{Type of asset to be used when subsetting data. Should be one
+of \code{"default"}, \code{"ARCO"}, \code{"static"}, \code{"omi"}, or \code{"downsampled4"}.
+When missing, set to \code{NULL} or set to \code{"default"}, it will use the first
+asset available for the requested product and layer, in the order as listed
+before.}
+
 \item{...}{Ignored (reserved for future features).}
 }
 \value{
@@ -71,7 +78,7 @@ Returns a \code{\link[stars:st_as_stars]{stars::st_as_stars()}} object.
 from Copernicus.
 }
 \examples{
-if (interactive()) {
+if (interactive() && requireNamespace("blosc")) {
 
   mydata <- cms_download_subset(
     product       = "GLOBAL_ANALYSISFORECAST_PHY_001_024",
@@ -83,6 +90,9 @@ if (interactive()) {
   )
 
   plot(mydata["vo"])
+} else {
+  message("Make sure to run this in an interactive environment")
+  message("and that the package 'blosc' is installed")
 }
 }
 \author{

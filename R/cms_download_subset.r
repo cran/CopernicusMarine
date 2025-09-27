@@ -29,12 +29,17 @@
 #' will download chunks that overlap with the specified ranges, but often
 #' covers a larger area. When `crop = TRUE` (default), the data will be cropped
 #' to the specified `region`. If set to `FALSE` all downloaded data will be returned.
+#' @param asset Type of asset to be used when subsetting data. Should be one
+#' of `"default"`, `"ARCO"`, `"static"`, `"omi"`, or `"downsampled4"`.
+#' When missing, set to `NULL` or set to `"default"`, it will use the first
+#' asset available for the requested product and layer, in the order as listed
+#' before.
 #' @param ... Ignored (reserved for future features).
 #' @returns Returns a [stars::st_as_stars()] object.
 #' @rdname cms_download_subset
 #' @name cms_download_subset
 #' @examples
-#' if (interactive()) {
+#' if (interactive() && requireNamespace("blosc")) {
 #'
 #'   mydata <- cms_download_subset(
 #'     product       = "GLOBAL_ANALYSISFORECAST_PHY_001_024",
@@ -46,6 +51,9 @@
 #'   )
 #'
 #'   plot(mydata["vo"])
+#' } else {
+#'   message("Make sure to run this in an interactive environment")
+#'   message("and that the package 'blosc' is installed")
 #' }
 #' @author Pepijn de Vries
 #' @export
@@ -62,7 +70,11 @@ cms_download_subset <- function(
     overwrite = FALSE,
     progress = TRUE,
     crop = TRUE,
+    asset,
     ...) {
+  if (missing(asset)) asset <- NULL
+  if (is.null(asset)) asset <- "default"
+  asset <- match.arg(asset, c("default", "ARCO", "static", "omi", "downsampled4"))
   
   subset_request <- list(
     product       = product,
@@ -73,20 +85,22 @@ cms_download_subset <- function(
     verticalrange = if (missing(verticalrange)) NULL else verticalrange
   )
   
-  service               <- .get_best_arco_service_type(subset_request, "", progress)
+  service               <- .get_best_arco_service_type(subset_request, "", progress,
+                                                       asset)
   current_refsys        <- .get_refsys(attributes(service)$dim_properties)
-  subset_request$region <- .as_bbox(subset_request$region, current_refsys)
+  if (!is.null(current_refsys))
+    subset_request$region <- .as_bbox(subset_request$region, current_refsys)
   variable              <- service$viewVariables |> names()
   dims                  <- names(attributes(service)$dims)
-
+  
   ## access_token is currently not used.
   if (!is.null(username) && !is.null(password) &&
       !is.na(username) && !is.na(password) && username != "" && password != "")
     access_token <- .get_access_token(username, password)
-
+  
   if (progress) rlang::inform("Downloading zarr meta information")
   serv_props <- .get_service_properties(service, variable)
-
+  
   if (progress) rlang::inform("Downloading chunks")
   
   result <- .download_chunks(dims, service, variable, progress)
@@ -104,29 +118,26 @@ cms_download_subset <- function(
   if (progress) rlang::inform("Formatting data")
   
   result <- .process_data(result, dims, variable, service, crop, current_refsys)
-
+  
   if (progress) rlang::inform("Done")
   return (result)
 }
 
 .process_data <- function(data, dims, variable, service, crop, current_refsys) {
-
+  
   chunk_dim <- lapply(dims, \(dm) dplyr::as_tibble(service$viewDims[[dm]]$chunkLen)) |>
     dplyr::bind_rows()
   
   xy <- .get_xy_axes(attr(service, "dim_properties"))
   dms <- dims
   if (service$id == "timeChunked") {
-    dim_order = match(dms, c("time", xy[[1]], xy[[2]], "elevation"))
-  } else if (service$id == "geoChunked") {
-    dim_order = match(dms, c(xy[[1]], xy[[2]], "elevation", "time"))
-  } else if (service$id == "static") {
-    dim_order = match(dms, c(xy[[1]], xy[[2]], "elevation"))
+    dim_order <- match(dms,
+                       intersect(c("time", xy[[1L]], xy[[2L]], "elevation"), dms))
   } else {
-    stop("Unknown service id")
+    dim_order <- match(dms,
+                       intersect(c(xy[[1L]], xy[[2L]], "elevation", "time"), dms))
   }
   result <- NULL ## avoid global bindings note in CRAN checks
-  
   data <-
     data |>
     dplyr::group_by(.data$var) |>
@@ -141,7 +152,6 @@ cms_download_subset <- function(
                                           names = dmn[dim_order])) |>
             stars::st_as_stars() |>
             stars::st_set_dimensions(result, xy = xy)
-          ## Set dimensions of stars object properly
           result <-
             purrr::reduce(
               dmn, \(y, z) {
@@ -149,10 +159,9 @@ cms_download_subset <- function(
               },
               .init = result
             )
-          
+
           names(result) <- v
           
-          sf::st_crs(result) <- current_refsys
           result
           
         },
@@ -176,13 +185,14 @@ cms_download_subset <- function(
         chunk_data = {
           if (dplyr::n() == 1) .data$chunk_data else
             list(do.call(c, c(.data$chunk_data, along = dm)))
-        }
+        } |>
+          lapply(sf::st_set_crs, value = current_refsys)
       ) |>
       dplyr::ungroup()
   }
   
   data <- do.call(c, c(data$chunk_data, list(try_hard = TRUE)))
-
+  
   for (dm in dims) {
     if (crop) {
       chunk_offset <- stats::na.omit(unlist(attr(service, "dims")[[dm]]$chunk_offset))
@@ -209,7 +219,7 @@ cms_download_subset <- function(
       stars::st_dimensions(data)[[dm]]$from <- 1L
     }
   }
-
+  
   ## Add unit to variable if possible
   var_prop <- attributes(service)$var_properties
   
@@ -238,8 +248,12 @@ cms_download_subset <- function(
     ) |>
     dplyr::mutate(
       chunk_data = lapply(seq_along(.data$chunk_data), \(i) {
+        if (is.null(.data$chunk_data[[i]])) return(rep(NA, prod(.data$dims[[i]])))
         if (.data$compressor[[i]]$id != "blosc") rlang::abort("Unkown compressor '%s'",
                                                               .data$compressor[[i]]$id)
+        if (!requireNamespace("blosc"))
+          rlang::abort(c(x = "Could not find required namespace \"blosc\"",
+                         i = "Install package \"blosc\" and try again"))
         ## If zarr version 3 is used, translate data type
         ## and endianness to dtype code
         blosc::blosc_decompress(x        = .data$chunk_data[[i]],
@@ -267,7 +281,7 @@ cms_download_subset <- function(
 }
 
 .download_chunks <- function(dims, service, variable, progress) {
-
+  
   dims_out_of_range <- lengths(lapply(attributes(service)$dims, `[[`, "chunk_id") |>
                                  lapply(`[[`, 1))
   dims_out_of_range <- names(dims_out_of_range)[dims_out_of_range == 0]
@@ -324,8 +338,13 @@ cms_download_subset <- function(
           lapply(httr2::request)
       },
       ## Currently uses default max number of requests of 10
-      chunk_data = httr2::req_perform_parallel(.data$chunk_url, progress = progress),
-      chunk_data = lapply(.data$chunk_data, httr2::resp_body_raw)
+      chunk_data = httr2::req_perform_parallel(.data$chunk_url, progress = progress,
+                                               on_error = "continue"),
+      chunk_data = {
+        lapply(.data$chunk_data, function(x) {
+          if (x$status == 403) return (NULL) else return(httr2::resp_body_raw(x))
+        })
+      }
     )
 }
 
@@ -340,12 +359,13 @@ cms_download_subset <- function(
     }) |>
     unlist() |>
     unique()
-  if (length(ref_sys) != 1) stop("Axes use mix of reference systems or is missing")
+  if (length(ref_sys) > 1) stop("Axes use mix of reference systems")
   ref_sys
 }
 
 ## function args: stars, index, dimension, variable, service-info
 .set_subset_dim <- function(x, i, d, v, service) {
+
   if (i < 0) i <- abs(i + 1)
   vals <- attr(service, "dims")[[d]]$values
   dim_prop <- attributes(service)$dim_properties[[d]]
@@ -368,28 +388,11 @@ cms_download_subset <- function(
   } else {
     stop("Unknown dimension type '%s'", tp)
   }
-  
-  stars::st_dimensions(x)[[d]]$point <- NA_real_
-  if (dim_prop$type == "temporal") {
-    if (is.null(dim_prop$step)) {
-      stars::st_dimensions(x)[[d]]$delta  <- NA_real_
-      stars::st_dimensions(x)[[d]]$offset <- NA_real_
-      stars::st_dimensions(x)[[d]]$values <- vals
-    } else {
-      stars::st_dimensions(x)[[d]]$values <- NULL
-      stars::st_dimensions(x)[[d]]$offset <- min(vals)
-      stars::st_dimensions(x)[[d]]$delta <- .code_to_period(dim_prop$step)
-    }
-    stars::st_dimensions(x)[[d]]$refsys <- class(vals)[[1]]
-  } else {
-    stars::st_dimensions(x)[[d]]$delta  <- NA_real_
-    stars::st_dimensions(x)[[d]]$offset <- NA_real_
-    stars::st_dimensions(x)[[d]]$values <- vals
-    if (inherits(vals, "units"))
-      stars::st_dimensions(x)[[d]]$refsys <- "udunits"
-  }
+  x <- stars::st_set_dimensions(x, d, values = vals, point = TRUE) |>
+    suppressWarnings()
+  stars::st_dimensions(x)[[d]]$refsys <- class(vals)[[1]]
   x
-
+  
 }
 
 .as_bbox <- function(x, crs_arg) {
@@ -401,18 +404,22 @@ cms_download_subset <- function(
   x
 }
 
-.get_best_arco_service_type <- function(subset_request, dataset_version, progress) {
+.get_best_arco_service_type <- function(subset_request, dataset_version, progress,
+                                        asset) {
   if (progress) rlang::inform("Downloading product meta data")
+  
   meta <-
     cms_product_metadata(subset_request$product) |>
     dplyr::filter(startsWith(.data$id, subset_request$layer)) |>
     dplyr::filter(dplyr::row_number() == 1)
-
+  
   var_properties <- meta$properties[[1]]$`cube:variables`
   dim_properties <- meta$properties[[1]]$`cube:dimensions`
   
-  subset_request$region <- .as_bbox(subset_request$region, .get_refsys(dim_properties))
-
+  if (!is.null(subset_request$region))
+    subset_request$region <-
+    .as_bbox(subset_request$region, .get_refsys(dim_properties))
+  
   variables <- lapply(meta$properties[[1]]$`cube:variables`,
                       `[[`, "standardName")
   variables[lengths(variables) == 0] <- NA
@@ -428,17 +435,59 @@ cms_download_subset <- function(
   time_chunked   <- meta$assets[[1]]$timeChunked
   geo_chunked    <- meta$assets[[1]]$geoChunked
   static         <- meta$assets[[1]]$static
+  omi            <- meta$assets[[1]]$omi
+  ds4            <- meta$assets[[1]]$downsampled4
   
-  if (is.null(static)) { ## Time or geo-chunked
+  if (asset == "default" && (!is.null(time_chunked) || !is.null(geo_chunked)))
+    asset <- "ARCO"
+  
+  if ((!is.null(static) && asset == "default") || asset == "static") {
+    result <- static
+    asset <- "static"
+  } else if ((!is.null(omi) && asset == "default") || asset == "omi") {
+    result <- omi
+    asset <- "omi"
+  } else if ((!is.null(ds4) && asset == "default") || asset == "downsampled4") {
+    result <- ds4
+    asset <- "ds4"
+  }
+  
+  if (asset == "ARCO") { ## Time or geo-chunked
     
-    indices_timec  <- .get_chunk_indices(subset_request, variables,
-                                         time_chunked, dimnames, dim_properties)
-    indices_geoc   <- .get_chunk_indices(subset_request, variables,
-                                         geo_chunked, dimnames, dim_properties)
+    if (!is.null(time_chunked)) {
+      indices_timec  <- .get_chunk_indices(subset_request, variables,
+                                           time_chunked, dimnames, dim_properties)
+      count_timec    <- .get_chunk_count(indices_timec) |> unlist() |> sum()
+    } else {
+      count_timec <- 0
+      count_geoc  <- 1
+    }
+    if (!is.null(geo_chunked)) {
+      indices_geoc   <- .get_chunk_indices(subset_request, variables,
+                                           geo_chunked, dimnames, dim_properties)
+      count_geoc     <- .get_chunk_count(indices_geoc) |> unlist() |> sum()
+    } else {
+      count_timec <- 1
+      count_geoc  <- 0
+    }
     
-    count_timec    <- .get_chunk_count(indices_timec) |> unlist() |> sum()
-    count_geoc     <- .get_chunk_count(indices_geoc) |> unlist() |> sum()
-    
+    if (!is.null(time_chunked)) {
+      indices_timec  <- .get_chunk_indices(subset_request, variables,
+                                           time_chunked, dimnames, dim_properties)
+      count_timec    <- .get_chunk_count(indices_timec) |> unlist() |> sum()
+    } else {
+      count_timec <- 0
+      count_geoc  <- 1
+    }
+    if (!is.null(geo_chunked)) {
+      indices_geoc   <- .get_chunk_indices(subset_request, variables,
+                                           geo_chunked, dimnames, dim_properties)
+      count_geoc     <- .get_chunk_count(indices_geoc) |> unlist() |> sum()
+    } else {
+      count_timec <- 1
+      count_geoc  <- 0
+    }
+
     if (count_timec < count_geoc) {
       result <- time_chunked
       attributes(result) <- c(attributes(result), list(dims = indices_timec))
@@ -446,12 +495,10 @@ cms_download_subset <- function(
       result <- geo_chunked
       attributes(result) <- c(attributes(result), list(dims = indices_geoc))
     }
-  } else { ## static
-    
-    result <- static
-    indices_static <- .get_chunk_indices(subset_request, variables,
-                                         static, dimnames, dim_properties)
-    attributes(result) <- c(attributes(result), list(dims = indices_static))
+  } else {
+    indices <- .get_chunk_indices(subset_request, variables,
+                                  result, dimnames, dim_properties)
+    attributes(result) <- c(attributes(result), list(dims = indices))
     
   }
   result$viewVariables <- result$viewVariables[variables]
@@ -479,11 +526,11 @@ cms_download_subset <- function(
       }),
       .check = lengths(.data$.generic) == 1L,
       dim = dims)
-
+  
   if (!all(chunk_dimlen$.check))
     rlang::abort(c(x = "Detected parameters with incompatible chunk dimensions",
                    i = "Please report at <https://github.com/pepijn-devries/CopernicusMarine/issues>"))
-
+  
   dims_alt <- c(elevation = "verticalrange", time = "timerange")
   corrected_ranges <-
     lapply(structure(dims, names = dims), function(dim) {
@@ -530,7 +577,7 @@ cms_download_subset <- function(
         rlang::abort(c(x = sprintf("Dimension type '%s' not implemented", dat$type),
                        i = "Please contact developers with regex"))
       }
-
+      
       flex <- (coord_values |> diff() |> min())/10
       indices <- which(coord_values >= (my_range[[1]] - flex) &
                          coord_values <= (my_range[[2]] + flex))
@@ -539,9 +586,9 @@ cms_download_subset <- function(
         dplyr::filter(.data$dim == .env$dim) |>
         dplyr::select(dplyr::any_of(variables)) |>
         as.list()
-
+      
       chunk_id <- lapply(dim_len, function(dl) floor((indices - 1L)/dl))
-
+      
       if (any(lengths(chunk_id) == 0)) chunk_offset <- numeric() else
         chunk_offset <- mapply(\(x, y) y*min(x), x = chunk_id, y = dim_len)
       coord_values <- list(
@@ -569,13 +616,13 @@ cms_download_subset <- function(
 }
 
 .get_xarray_properties <- function(service, var) {
-
+  
   zattrs <-
     paste(service$href, var, ".zattrs", sep = "/") |>
     httr2::request() |>
     httr2::req_perform() |>
     httr2::resp_body_json(check_type = FALSE)
-
+  
   zarray <-
     paste(service$href, var, ".zarray", sep = "/") |>
     httr2::request() |>
