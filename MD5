@@ -1,11 +1,11 @@
-6e95d533aeff2887ee37f33b3526c6e3 *DESCRIPTION
-cae41495613fcd1872b6dcb157938e73 *NAMESPACE
-f649aff64949f4502717a390d0e78c80 *NEWS.md
+9e9d1575f15d250e778b127bc2d6e138 *DESCRIPTION
+55452c2c34e0a690e57f4cd2484875a7 *NAMESPACE
+9f0c1959d8e74cab3b1c06ae0b023164 *NEWS.md
 3df8358824f63df1e2761457d909cb85 *R/CopernicusMarine-package.r
 087eb4c842620438fdd0811c09f981f6 *R/cms_catalogue_entry.R
 498dba213912563f16566b32f2d5cf22 *R/cms_cite_product.r
 c546f2b6e01b7b44c6b605d81e9601b0 *R/cms_download_native.R
-01cb919997ccf9a36b8b520fe0876b6c *R/cms_download_subset.r
+d0cc14b732d5df1716da355f0676942c *R/cms_download_subset.r
 da0a90f4925af7a4f6e01a38b7cea4fe *R/cms_login.r
 71a08ea6db7f34587e26d5b8ef1c5580 *R/cms_product_details.r
 5e362f6e67d449cbf0f392453920ba71 *R/cms_product_metadata.r
@@ -14,7 +14,12 @@ aa7ad9fd2e6ec0526ff95c1e760e3713 *R/cms_product_services.r
 42a433d55a9b710f81b2749716bc90d1 *R/cms_wmts.r
 114fb9245698dfed661139e81cba6876 *R/generics.r
 976314cecd108db6886ff9f4dc720a42 *R/import.r
-f51836529b46260595e5290420aa0d0a *README.md
+d9363e4e0915aabb4de957bee513d331 *R/translate.R
+af5cedeb59aae7aefd3d755e459a7bcb *README.md
+8a9a5ab7c1aced4070e1e6a197d9c636 *build/vignette.rds
+39a4e341c03a15478744ac653e18325b *inst/doc/translate.R
+0f32210a867bd97af8335982e40eed74 *inst/doc/translate.Rmd
+a87785f4c36846657bb7d70570216730 *inst/doc/translate.html
 b0963d987b20563fd2312e11cbc197c3 *man/CopernicusMarine-package.Rd
 b61563aba735c11ff8b8c4bc976a6429 *man/account.Rd
 8ecb90538b28e54728ce54d72e520c0c *man/cms_cite_product.Rd
@@ -26,9 +31,10 @@ eac64fa1321759352282accfd2d18be1 *man/cms_get_client_info.Rd
 d6bf983ce6d8a6234eab793f210c4b27 *man/cms_product_metadata.Rd
 38290aa3b283966ef7343b0ab913c272 *man/cms_product_services.Rd
 354510d4cd604e89e61936440715db1b *man/cms_products_list.Rd
+737264ef06937f880d25980bdbed1a0c *man/cms_translate.Rd
 75a93feb4b9b87e8c0e7ab4d282bddce *man/cms_wmts.Rd
-85e5b4b10a06118683d61646c0d8d6b3 *man/figures/README-download-subset-1.png
-f2549eacb86bd1d4cddde5ae6826dc99 *man/figures/README-leaflet-1.png
+ef5c331d4e892c8e770f2dfdfd4113f3 *man/figures/README-download-subset-1.png
+7f297ceb06c7b1b28cab82e3b2f1d96b *man/figures/README-leaflet-1.png
 cb1e46f469cfbbbde29c8b5113e1d789 *man/figures/lifecycle-archived.svg
 c0d2e5a54f1fa4ff02bf9533079dd1f7 *man/figures/lifecycle-defunct.svg
 a1b8c987c676c16af790f563f96cbb1f *man/figures/lifecycle-deprecated.svg
@@ -47,3 +53,4 @@ fb6626cae2b584e2e3518df06013694d *tests/testthat/test_native.r
 1060fa2c3ce14a9657059c8447a6c806 *tests/testthat/test_product.r
 89cc36bc87b7496e79e4520039131df4 *tests/testthat/test_subset.r
 f508bad89029ce1d3e3839854e418135 *tests/testthat/test_wmts.r
+0f32210a867bd97af8335982e40eed74 *vignettes/translate.Rmd

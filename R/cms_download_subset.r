@@ -117,26 +117,31 @@ cms_download_subset <- function(
   
   if (progress) rlang::inform("Formatting data")
   
-  result <- .process_data(result, dims, variable, service, crop, current_refsys)
+  result <- .process_data(result, dims, variable, service, serv_props,
+                          crop, current_refsys)
   
   if (progress) rlang::inform("Done")
   return (result)
 }
 
-.process_data <- function(data, dims, variable, service, crop, current_refsys) {
+.process_data <- function(data, dims, variable, service, serv_props,
+                          crop, current_refsys) {
   
   chunk_dim <- lapply(dims, \(dm) dplyr::as_tibble(service$viewDims[[dm]]$chunkLen)) |>
     dplyr::bind_rows()
   
   xy <- .get_xy_axes(attr(service, "dim_properties"))
   dms <- dims
-  if (service$id == "timeChunked") {
-    dim_order <- match(dms,
-                       intersect(c("time", xy[[1L]], xy[[2L]], "elevation"), dms))
-  } else {
-    dim_order <- match(dms,
-                       intersect(c(xy[[1L]], xy[[2L]], "elevation", "time"), dms))
-  }
+  dim_order <- seq_along(dms)
+
+  dim_order_type <- 
+    serv_props |>
+    dplyr::filter(.data$var %in% variable) |>
+    dplyr::pull("order") |>
+    unique()
+  if (length(dim_order_type) != 1) stop("Mixed dimension orders!")
+  if (dim_order_type == "C") dim_order <- rev(dim_order)
+  
   result <- NULL ## avoid global bindings note in CRAN checks
   data <-
     data |>
@@ -565,7 +570,6 @@ cms_download_subset <- function(
         dat_len <- chunk_info$viewDims[[dim]]$chunkLen[[1]]
         dat_len <- dat_len*ceiling(dat$len/dat_len)
         
-        
         dim_range[[1]] + (seq_len(dat_len) - 1L) * dim_props[[dim]]$step
         
       } else if (dat$type == "explicit") {
@@ -578,7 +582,9 @@ cms_download_subset <- function(
                        i = "Please contact developers with regex"))
       }
       
-      flex <- (coord_values |> diff() |> min())/10
+      if (length(coord_values) == 1) flex <- 1e-6 else {
+        flex <- (coord_values |> diff() |> min())/10
+      }
       indices <- which(coord_values >= (my_range[[1]] - flex) &
                          coord_values <= (my_range[[2]] + flex))
       dim_len <-
@@ -635,11 +641,11 @@ cms_download_subset <- function(
       unlist(zarray$chunks),
       names = unlist(zattrs$`_ARRAY_DIMENSIONS`)
     )
-  if (zarray$order == "C") chunk_dimensions <- rev(chunk_dimensions)
   
   list(
     zarray = zarray,
     zattrs = zattrs,
-    dims = chunk_dimensions
+    dims = chunk_dimensions,
+    dim_order = zarray$order
   )
 }
