@@ -132,7 +132,8 @@ cms_download_subset <- function(
   
   xy <- .get_xy_axes(attr(service, "dim_properties"))
   dms <- dims
-  dim_order <- seq_along(dms)
+  dim_order <- match(unlist(serv_props$zattrs[[1]]$`_ARRAY_DIMENSIONS`), dms)
+  dim_order <- c(dim_order, match(dms[-dim_order], dms))
 
   dim_order_type <- 
     serv_props |>
@@ -143,7 +144,7 @@ cms_download_subset <- function(
   if (dim_order_type == "C") dim_order <- rev(dim_order)
   
   result <- NULL ## avoid global bindings note in CRAN checks
-  data <-
+  data <- 
     data |>
     dplyr::group_by(.data$var) |>
     dplyr::mutate(
@@ -159,7 +160,7 @@ cms_download_subset <- function(
             stars::st_set_dimensions(result, xy = xy)
           result <-
             purrr::reduce(
-              dmn, \(y, z) {
+              dmn[dim_order], \(y, z) {
                 .set_subset_dim(y, idx[[z]], z, v, service)
               },
               .init = result
@@ -177,7 +178,6 @@ cms_download_subset <- function(
       }
     )
   remaining_dims <- dims
-  
   data <-
     purrr::reduce(dims, \(x, y) tidyr::unnest(x, dplyr::any_of(y)), .init = data)
   
@@ -217,7 +217,7 @@ cms_download_subset <- function(
   
   for (dm in dims) {
     fr <- stars::st_dimensions(data)[[dm]]$from
-    if (fr != 1L &&
+    if (!is.null(fr) && fr != 1L &&
         is.na(stars::st_dimensions(data)[[dm]]$offset)) {
       stars::st_dimensions(data)[[dm]]$to   <-
         stars::st_dimensions(data)[[dm]]$to - fr + 1L
@@ -259,11 +259,23 @@ cms_download_subset <- function(
         if (!requireNamespace("blosc"))
           rlang::abort(c(x = "Could not find required namespace \"blosc\"",
                          i = "Install package \"blosc\" and try again"))
+        scaling <- service_properties$zattrs[[1]]$scale_factor |> suppressWarnings()
+        add_offs <- service_properties$zattrs[[1]]$add_offset |> suppressWarnings()
+        if (is.null(scaling)) {
+          scaling <- 1
+          add_offs <- 0
+        } else {
+          scaling <- scaling[[i]]
+          add_offs <- add_offs[[i]]
+        }
         ## If zarr version 3 is used, translate data type
         ## and endianness to dtype code
-        blosc::blosc_decompress(x        = .data$chunk_data[[i]],
-                                dtype    = .data$dtype[[i]],
-                                na_value = .data$fill_value[[i]])
+        result <-
+          blosc::blosc_decompress(x        = .data$chunk_data[[i]],
+                                  dtype    = .data$dtype[[i]],
+                                  na_value = .data$fill_value[[i]])
+        if (is.numeric(result)) result <- add_offs + scaling * result
+        result
       })
     )
 }

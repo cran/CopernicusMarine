@@ -17,7 +17,7 @@ coverage](https://codecov.io/gh/pepijn-devries/CopernicusMarine/branch/master/gr
 ## Overview
 
 [Copernicus Marine Service
-Information](https://marine.copernicus.eu/about) is a programme
+Information](https://marine.copernicus.eu/about/) is a programme
 subsidised by the European Commission. Its mission is to provide free
 authoritative information on the oceans physical and biogeochemical
 state. The `CopernicusMarine` R package is developed apart from this
@@ -85,15 +85,19 @@ my_data <-
     variable      = c("uo", "vo"),
     region        = c(-1, 50, 10, 55),
     timerange     = c("2025-01-01", "2025-01-02"),
-    verticalrange = c(0, -2),
+    verticalrange = c(0, -0.5),
     progress      = FALSE
 )
 #> Loading required namespace: blosc
 
-plot(my_data["vo"], col = hcl.colors(100), axes = TRUE)
+plot(my_data["vo", drop = TRUE], col = hcl.colors(100), axes = TRUE)
 ```
 
 <img src="man/figures/README-download-subset-1.png" alt="Example plots of downloaded subsets"  />
+
+You can also use the request code from the Copernicus Marine Service
+website to download a subset. For more details see
+`vignette("translate")`
 
 <h3 id="sec-full">
 

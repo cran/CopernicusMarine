@@ -25,7 +25,7 @@ cli_code <-
 translated <- cms_translate(cli_code)
 summary(translated)
 
-## ----download-translation, message=FALSE, fig.width=3, fig.height=3, fig.alt="Data downloaded using translated query code"----
+## ----download-translation, message=FALSE, fig.width=4, fig.height=4, fig.alt="Data downloaded using translated query code"----
 result <- do.call(cms_download_subset, translated)
 plot(result, col = hcl.colors(100), axes = TRUE)
 

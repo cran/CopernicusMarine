@@ -1,3 +1,10 @@
+CopernicusMarine v0.3.5
+-------------
+
+ * Updated documentation
+ * Fix for https://github.com/pepijn-devries/CopernicusMarine/issues/100
+ * Fix for https://github.com/pepijn-devries/CopernicusMarine/issues/102
+
 CopernicusMarine v0.3.2
 -------------
 
