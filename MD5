@@ -1,11 +1,11 @@
-9f72572b8d889c740550dd117ba0e73a *DESCRIPTION
+9c599a9f1efe63f30944c9b73f2e7726 *DESCRIPTION
 55452c2c34e0a690e57f4cd2484875a7 *NAMESPACE
-c20ee40e9fbdd497adfc112c9ff8e18a *NEWS.md
+b473f987899ee16757d02951334100ac *NEWS.md
 3df8358824f63df1e2761457d909cb85 *R/CopernicusMarine-package.r
 087eb4c842620438fdd0811c09f981f6 *R/cms_catalogue_entry.R
 498dba213912563f16566b32f2d5cf22 *R/cms_cite_product.r
 c546f2b6e01b7b44c6b605d81e9601b0 *R/cms_download_native.R
-52e014f2ee71dab721b0462083874c1b *R/cms_download_subset.r
+c3618f907a338bdbb1517d158b7fea46 *R/cms_download_subset.r
 b33153b5e26f17431b62011998758951 *R/cms_login.r
 71a08ea6db7f34587e26d5b8ef1c5580 *R/cms_product_details.r
 5e362f6e67d449cbf0f392453920ba71 *R/cms_product_metadata.r
@@ -52,6 +52,6 @@ db49a5f0684b78ce0517280d061f198c *tests/testthat/helper.r
 8773c212009043bc941fe07bb2a0e096 *tests/testthat/test_login.r
 fb6626cae2b584e2e3518df06013694d *tests/testthat/test_native.r
 1060fa2c3ce14a9657059c8447a6c806 *tests/testthat/test_product.r
-a373a614d1af9fc090f0f7b402af49c7 *tests/testthat/test_subset.r
+4b8605d21c41287ce70e027136bf86ff *tests/testthat/test_subset.r
 f508bad89029ce1d3e3839854e418135 *tests/testthat/test_wmts.r
 421cf25cc18b20ed0f10b88293bc3064 *vignettes/translate.Rmd

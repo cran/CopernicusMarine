@@ -2,7 +2,7 @@ Package: CopernicusMarine
 Type: Package
 Title: Search Download and Handle Data from Copernicus Marine Service
         Information
-Version: 0.3.6
+Version: 0.3.7
 Authors@R: c(person("Pepijn", "de Vries", role = c("aut", "cre", "dtc"),
     email = "pepijn.devries@outlook.com",
     comment = c(ORCID = "0000-0002-7961-6646")))
@@ -34,6 +34,6 @@ Collate: 'CopernicusMarine-package.r' 'cms_catalogue_entry.R'
 Language: en-GB
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2025-11-11 15:57:19 UTC; vries171
+Packaged: 2025-11-30 15:49:16 UTC; vries171
 Repository: CRAN
-Date/Publication: 2025-11-11 22:30:10 UTC
+Date/Publication: 2025-11-30 16:40:30 UTC
