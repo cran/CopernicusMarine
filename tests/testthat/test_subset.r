@@ -1,6 +1,5 @@
 test_that("Subset download produces expected data", {
   skip_on_cran()
-  skip_if_not_installed("blosc")
   skip_if_not_installed("ncmeta")
   has_account_details()
   skip_if_offline("data.marine.copernicus.eu")
@@ -12,7 +11,7 @@ test_that("Subset download produces expected data", {
         variable      = c("uo"),
         region        = c(-1, 50, 10, 55),
         timerange     = c("2025-01-01"),
-        verticalrange = c(0, -1)
+        verticalrange = c(0, -.4)
       ) |>
       suppressMessages()
     
@@ -40,7 +39,6 @@ test_that("Subset download produces expected data", {
 
 test_that("Downloaded subset is scaled correctly", {
   skip_on_cran()
-  skip_if_not_installed("blosc")
   has_account_details()
   skip_if_offline("data.marine.copernicus.eu")
   expect_true({
@@ -59,7 +57,6 @@ test_that("Downloaded subset is scaled correctly", {
 
 test_that("Subsetting out of range results in error", {
   skip_on_cran()
-  skip_if_not_installed("blosc")
   has_account_details()
   skip_if_offline("data.marine.copernicus.eu")
   expect_error({
@@ -78,7 +75,6 @@ test_that("Subsetting out of range results in error", {
 
 test_that("A static map can be downloaded", {
   skip_on_cran()
-  skip_if_not_installed("blosc")
   has_account_details()
   skip_if_offline("data.marine.copernicus.eu")
   expect_no_error({
@@ -103,5 +99,18 @@ test_that("Codes are converted correctly to periods", {
 test_that("Unknown time code throws error", {
   expect_error({
     CopernicusMarine:::.code_to_period("XXX")
+  })
+})
+
+test_that("A proxy object can be created from zarr", {
+  skip_on_cran()
+  expect_true({
+    myproxy <- cms_zarr_proxy(
+      product       = "GLOBAL_ANALYSISFORECAST_PHY_001_024",
+      layer         = "cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m",
+      variable      = NULL,
+      asset         = "timeChunked")
+    mystars <- stars::st_as_stars(myproxy["uo",1:200,1:100,50,1])
+    all(dim(mystars) == c(200, 100, 1, 1))
   })
 })

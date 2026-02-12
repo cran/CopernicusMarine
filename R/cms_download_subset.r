@@ -3,6 +3,9 @@
 #' `r lifecycle::badge('experimental')` Subset and download a specific marine product
 #' from Copernicus.
 #'
+#' Currently, credentials are ignored. The subsetting service seems to be
+#' public. You can use this function without using your account. This might
+#' change in the future.
 #' @include cms_login.r
 #' @inheritParams cms_login
 #' @param product An identifier (type `character`) of the desired Copernicus marine product.
@@ -19,10 +22,9 @@
 #' sea surface needs to be specified as negative values.
 #' @param progress A logical value. When `TRUE` (default) progress is reported to the console.
 #' Otherwise, this function will silently proceed.
-#' @param crop On the server, the data is organised in chunks. The subset
-#' will download chunks that overlap with the specified ranges, but often
-#' covers a larger area. When `crop = TRUE` (default), the data will be cropped
-#' to the specified `region`. If set to `FALSE` all downloaded data will be returned.
+#' @param crop `r lifecycle::badge('deprecated')`. This version now
+#' uses the GDAL library to handle the subsetting and downloading of
+#' subsets. The `crop` argument is therefore no longer supported.
 #' @param asset Type of asset to be used when subsetting data. Should be one
 #' of `"default"`, `"ARCO"`, `"static"`, `"omi"`, or `"downsampled4"`.
 #' When missing, set to `NULL` or set to `"default"`, it will use the first
@@ -33,7 +35,7 @@
 #' @rdname cms_download_subset
 #' @name cms_download_subset
 #' @examples
-#' if (interactive() && requireNamespace("blosc")) {
+#' if (interactive()) {
 #'
 #'   mydata <- cms_download_subset(
 #'     product       = "GLOBAL_ANALYSISFORECAST_PHY_001_024",
@@ -47,7 +49,6 @@
 #'   plot(mydata["vo"])
 #' } else {
 #'   message("Make sure to run this in an interactive environment")
-#'   message("and that the package 'blosc' is installed")
 #' }
 #' @author Pepijn de Vries
 #' @export
@@ -61,13 +62,17 @@ cms_download_subset <- function(
     timerange,
     verticalrange,
     progress = TRUE,
-    crop = TRUE,
+    crop,
     asset,
     ...) {
   if (missing(asset)) asset <- NULL
   if (is.null(asset)) asset <- "default"
   asset <- match.arg(asset, c("default", "ARCO", "static", "omi", "downsampled4"))
   
+  if (!missing(crop))
+    rlang::warn("The `crop` argument is deprecated and ignored")
+  
+  if (missing(variable) || is.null(variable)) variable <- character(0)
   subset_request <- list(
     product       = product,
     layer         = layer,
@@ -76,290 +81,76 @@ cms_download_subset <- function(
     timerange     = if (missing(timerange)) NULL else timerange,
     verticalrange = if (missing(verticalrange)) NULL else verticalrange
   )
+  if (progress)
+    cli::cli_progress_step("Obtaining best or specified service")
+  service <- .get_best_arco_service_type(
+    subset_request, "", progress, asset)
   
-  service               <- .get_best_arco_service_type(subset_request, "", progress,
-                                                       asset)
-  current_refsys        <- .get_refsys(attributes(service)$dim_properties)
-  if (!is.null(current_refsys))
-    subset_request$region <- .as_bbox(subset_request$region, current_refsys)
-  variable              <- service$viewVariables |> names()
-  dims                  <- names(attributes(service)$dims)
+  if (progress)
+    cli::cli_progress_step("Contacting {.href [service]({service$href}/.zmetadata)}")
   
-  ## access_token is currently not used.
-  if (!is.null(username) && !is.null(password) &&
-      !is.na(username) && !is.na(password) && username != "" && password != "")
-    access_token <- .get_access_token(username, password)
+  numthr <- Sys.getenv("GDAL_NUM_THREADS")
+  Sys.setenv(GDAL_NUM_THREADS = "ALL_CPUS")
+  Sys.setenv(GDAL_HTTP_MULTICURL = "YES")
+  Sys.setenv(GDAL_DISABLE_READDIR_ON_OPEN = "EMPTY_DIR")
   
-  if (progress) rlang::inform("Downloading zarr meta information")
-  serv_props <- .get_service_properties(service, variable)
+  mdim_proxy <-
+    service$href |>
+    .uri_to_vsi(progress) |>
+    .get_stars_proxy(variable)
   
-  if (progress) rlang::inform("Downloading chunks")
-  
-  result <- .download_chunks(dims, service, variable, progress)
-  
-  if (progress) {
-    rlang::inform("") # Empty line to replace progress bar, not very nice I know
-    rlang::inform("Decompressing data")
-  }
-  
-  if (any(serv_props$zarr_format != 2))
-    stop("Sorry at the moment only zarr format verions 2 is implemented")
-  
-  result <- .decompress_data(result, serv_props)
-  
-  if (progress) rlang::inform("Formatting data")
-  
-  result <- .process_data(result, dims, variable, service, serv_props,
-                          crop, current_refsys)
-  
-  if (progress) rlang::inform("Done")
-  return (result)
-}
+  if (progress)
+    cli::cli_progress_step("Subsetting and downloading data")
 
-.process_data <- function(data, dims, variable, service, serv_props,
-                          crop, current_refsys) {
-  
-  chunk_dim <- lapply(dims, \(dm) dplyr::as_tibble(service$viewDims[[dm]]$chunkLen)) |>
-    dplyr::bind_rows()
-  
-  xy <- .get_xy_axes(attr(service, "dim_properties"))
-  dms <- dims
-  dim_order <- match(unlist(serv_props$zattrs[[1]]$`_ARRAY_DIMENSIONS`), dms)
-  dim_order <- c(dim_order, match(dms[-dim_order], dms))
-
-  dim_order_type <- 
-    serv_props |>
-    dplyr::filter(.data$var %in% variable) |>
-    dplyr::pull("order") |>
-    unique()
-  if (length(dim_order_type) != 1) stop("Mixed dimension orders!")
-  if (dim_order_type == "C") dim_order <- rev(dim_order)
-  
-  result <- NULL ## avoid global bindings note in CRAN checks
-  data <- 
-    data |>
-    dplyr::group_by(.data$var) |>
-    dplyr::mutate(
-      chunk_data = {
-        lapply(seq_along(dplyr::cur_group_rows()), \(i, v, idxs, dat, dmn) {
-          result <- dat[[i]]
-          idx <- idxs[i,]
-          chunk_dim[is.na(chunk_dim)] <- 1L
-          result <-
-            array(result, dim = structure(chunk_dim[[v]][dim_order],
-                                          names = dmn[dim_order])) |>
-            stars::st_as_stars() |>
-            stars::st_set_dimensions(result, xy = xy)
-          result <-
-            purrr::reduce(
-              dmn[dim_order], \(y, z) {
-                .set_subset_dim(y, idx[[z]], z, v, service)
-              },
-              .init = result
-            )
-
-          names(result) <- v
-          
-          result
-          
-        },
-        v    = .data$var[[1]],
-        idxs = dplyr::pick(dplyr::any_of(dms)),
-        dat  = .data$chunk_data,
-        dmn  = dms)
-      }
-    )
-  remaining_dims <- dims
-  data <-
-    purrr::reduce(dims, \(x, y) tidyr::unnest(x, dplyr::any_of(y)), .init = data)
-  
-  for (dm in rev(dims)) {
-    remaining_dims <- setdiff(remaining_dims, dm)
-    data <- 
-      data |>
-      dplyr::group_by(dplyr::pick(dplyr::any_of(c("var", remaining_dims)))) |>
-      dplyr::summarise(
-        chunk_data = {
-          if (dplyr::n() == 1) .data$chunk_data else
-            list(do.call(c, c(.data$chunk_data, along = dm)))
-        } |>
-          lapply(sf::st_set_crs, value = current_refsys)
-      ) |>
-      dplyr::ungroup()
-  }
-  
-  data <- do.call(c, c(data$chunk_data, list(try_hard = TRUE)))
-  
-  for (dm in dims) {
-    if (crop) {
-      chunk_offset <- stats::na.omit(unlist(attr(service, "dims")[[dm]]$chunk_offset))
-      if (length(chunk_offset) == 0) next else chunk_offset <- chunk_offset[[1]]
-      selection <- attr(service, "dims")[[dm]]$indices - chunk_offset
-      data <-
-        dplyr::slice(data, !!dm, selection, drop = FALSE)
-    } else {
-      data <-
-        dplyr::slice(data, !!dm,
-                     which(!is.na(stars::st_get_dimension_values(data, dm))),
-                     drop = FALSE)
+  dms <- stars::st_dimensions(mdim_proxy)
+  idx <- lapply(names(dms), \(dm) {
+    idx_start <- stars::st_get_dimension_values(mdim_proxy, dm, where = "start")
+    idx_end   <- stars::st_get_dimension_values(mdim_proxy, dm, where = "end")
+    if (dm != "time") {
+      idx_start <- as.numeric(idx_start)
+      idx_end   <- as.numeric(idx_end)
     }
-  }
-  
-  data <- sf::st_normalize(data)
-  
-  for (dm in dims) {
-    fr <- stars::st_dimensions(data)[[dm]]$from
-    if (!is.null(fr) && fr != 1L &&
-        is.na(stars::st_dimensions(data)[[dm]]$offset)) {
-      stars::st_dimensions(data)[[dm]]$to   <-
-        stars::st_dimensions(data)[[dm]]$to - fr + 1L
-      stars::st_dimensions(data)[[dm]]$from <- 1L
+    comparator <-
+      switch(
+        dm,
+        longitude = region[c(1, 3)],
+        latitude = region[c(2, 4)],
+        time = lubridate::as_datetime(timerange),
+        elevation = verticalrange
+      )
+    if (length(comparator) == 1) comparator <- comparator[c(1,1)]
+    comparator <- sort(comparator)
+    idx <- if (length(comparator) == 0) rep(TRUE, length(idx_end)) else {
+      (idx_end > comparator[[1]] & idx_end < comparator[[2]]) |
+      (idx_start >= comparator[[1]] & idx_start <= comparator[[2]]) |
+        (idx_end > comparator[[1]] & idx_start <= comparator[[2]])
+
     }
-  }
+    result <- which(idx)
+    if (length(result) == 0)
+      rlang::abort(sprintf("Dimension '%s' not within selected range", dm))
+    result
+  })
+
+  mdim_proxy <- rlang::inject(mdim_proxy[,!!!idx])
+
+  result <- .muffle_403({
+    stars::st_as_stars(mdim_proxy)
+  })
   
-  ## Add unit to variable if possible
-  var_prop <- attributes(service)$var_properties
-  
-  for (v in variable) {
-    data[[v]] <- tryCatch({
-      units::as_units(data[[v]], var_prop[[v]]$unit)
-    }, error = function(e) result[[v]])
+  Sys.setenv(GDAL_NUM_THREADS = numthr)
+
+  cli::cli_progress_done()
+  result
+}
+
+.as_bbox <- function(x, crs_arg) {
+  if (is.numeric(x) && is.null(names(x))) {
+    names(x) <- c("xmin", "ymin", "xmax", "ymax")
   }
-  data
-}
-
-.get_xy_axes <- function(dim_props) {
-  xy <- lapply(dim_props, \(x) {
-    c("x", "y")[match(x$axis, c("x", "y"))]
-  }) |>
-    unlist()
-  lapply(c("x", "y"), \(z) names(xy)[!is.na(xy) & xy == z]) |>
-    unlist()
-}
-
-.decompress_data <- function(data, service_properties) {
-  data |>
-    dplyr::left_join(
-      service_properties,
-      by = "var"
-    ) |>
-    dplyr::mutate(
-      chunk_data = lapply(seq_along(.data$chunk_data), \(i) {
-        if (is.null(.data$chunk_data[[i]])) return(rep(NA, prod(.data$dims[[i]])))
-        if (.data$compressor[[i]]$id != "blosc") rlang::abort("Unkown compressor '%s'",
-                                                              .data$compressor[[i]]$id)
-        if (!requireNamespace("blosc"))
-          rlang::abort(c(x = "Could not find required namespace \"blosc\"",
-                         i = "Install package \"blosc\" and try again"))
-        scaling <- service_properties$zattrs[[1]]$scale_factor |> suppressWarnings()
-        add_offs <- service_properties$zattrs[[1]]$add_offset |> suppressWarnings()
-        if (is.null(scaling)) {
-          scaling <- 1
-          add_offs <- 0
-        } else {
-          scaling <- unique(stats::na.omit(scaling))
-          add_offs <- unique(stats::na.omit(add_offs))
-          if (length(scaling) != 1L || length(add_offs) != 1L)
-            rlang::abort(c(
-              x = "Inconsistency in scaling factors",
-              i = "Please report at https://github.com/pepijn-devries/CopernicusMarine/issues/"
-            ))
-        }
-        ## If zarr version 3 is used, translate data type
-        ## and endianness to dtype code
-        result <-
-          blosc::blosc_decompress(x        = .data$chunk_data[[i]],
-                                  dtype    = .data$dtype[[i]],
-                                  na_value = .data$fill_value[[i]])
-        if (is.numeric(result)) result <- add_offs + scaling * result
-        result
-      })
-    )
-}
-
-.get_service_properties <- function(service, variable) {
-  dplyr::tibble(
-    var = variable,
-    serv_props = lapply(variable, \(x) .get_xarray_properties(service, x))
-  ) |>
-    dplyr::group_by(.data$var) |>
-    dplyr::summarise(
-      zattrs  = list(dplyr::as_tibble(.data$serv_props[[1]]$zattrs)),
-      zarray  = list(dplyr::as_tibble(lapply(.data$serv_props[[1]]$zarray, \(x) {
-        if (length(x) == 1) x else list(x)
-      }))),
-      dims    = list(.data$serv_props[[1]]$dims),
-      .groups = "keep"
-    ) |>
-    tidyr::unnest("zarray")
-}
-
-.download_chunks <- function(dims, service, variable, progress) {
-  
-  dims_out_of_range <- lengths(lapply(attributes(service)$dims, `[[`, "chunk_id") |>
-                                 lapply(`[[`, 1))
-  dims_out_of_range <- names(dims_out_of_range)[dims_out_of_range == 0]
-  if (length(dims_out_of_range) > 0) {
-    rlang::abort(
-      c(x = sprintf("No data within selected range (for these dimensions: %s)",
-                    paste(sprintf("'%s'", dims_out_of_range), collapse = ", ")),
-        i = "Check data extent with `cms_product_metadata()`")
-    )
-  }
-  result <-
-    lapply(dims, function(dm) attributes(service)$dims[[dm]]$chunk_id) |>
-    lapply(dplyr::as_tibble) |>
-    lapply(\(x) {
-      dplyr::mutate(
-        x,
-        .generic = purrr::pmap(dplyr::pick(dplyr::everything()), \(...) {
-          result <- unique(stats::na.omit(c(...)))
-          if (length(result) == 0) 0L else result
-        }) |> unlist(),
-        dplyr::across(dplyr::everything(), ~ {
-          ifelse(is.na(.), -.data$.generic - 1L, .)
-        })
-      ) |>
-        dplyr::select(-".generic")
-    })
-  result <- dplyr::tibble(result = result, dim = dims) |>
-    tidyr::unnest("result") |>
-    dplyr::distinct() |>
-    tidyr::pivot_longer(dplyr::all_of(variable), names_to = "var", values_to = "id") |>
-    tidyr::pivot_wider(id_cols = "var", names_from = "dim", values_from = "id",
-                       values_fn = list) |>
-    tidyr::expand_grid() |>
-    dplyr::group_by(.data$var) |>
-    dplyr::group_modify(~{
-      do.call(tidyr::expand_grid, lapply(., `[[`, 1)) |>
-        dplyr::as_tibble()
-    }) |>
-    dplyr::ungroup() |>
-    dplyr::distinct() |>
-    dplyr::mutate(
-      combi_id = purrr::pmap(
-        dplyr::pick(dplyr::any_of(c("time", "elevation", "latitude", "longitude"))),
-        \(...) {
-          result <- c(...)
-          result[result >= 0] |>
-            paste(collapse = ".")
-        }) |> unlist()
-    ) |>
-    dplyr::mutate(
-      chunk_url = {
-        mapply(sprintf, fmt = "%s/%s/%s", service$href, .data$var, .data$combi_id,
-               SIMPLIFY = FALSE) |>
-          lapply(httr2::request)
-      },
-      ## Currently uses default max number of requests of 10
-      chunk_data = httr2::req_perform_parallel(.data$chunk_url, progress = progress,
-                                               on_error = "continue"),
-      chunk_data = {
-        lapply(.data$chunk_data, function(x) {
-          if (x$status == 403) return (NULL) else return(httr2::resp_body_raw(x))
-        })
-      }
-    )
+  x <- sf::st_bbox(x)
+  if (is.na(sf::st_crs(x))) sf::st_crs(x) <- crs_arg
+  x
 }
 
 .get_refsys <- function(dim_props) {
@@ -377,51 +168,9 @@ cms_download_subset <- function(
   ref_sys
 }
 
-## function args: stars, index, dimension, variable, service-info
-.set_subset_dim <- function(x, i, d, v, service) {
-
-  if (i < 0) i <- abs(i + 1)
-  vals <- attr(service, "dims")[[d]]$values
-  dim_prop <- attributes(service)$dim_properties[[d]]
-  
-  tp <- service$viewDims[[d]]$coords$type
-  if (tp == "explicit") {
-    cl <- service$viewDims[[d]]$chunkLen[[1]]
-    vals <- vals[i*cl + seq_len(cl)]
-    if (!is.null(dim_prop$unit)) {
-      vals <- tryCatch({
-        units::as_units(vals, dim_prop$unit)
-      }, error = function(e) vals)
-    }
-  } else if (tp == "minMaxStep") {
-    vals <-
-      vals[
-        i * service$viewDims[[d]]$chunkLen[[v]] +
-          seq_len(service$viewDims[[d]]$chunkLen[[v]])
-      ]
-  } else {
-    stop("Unknown dimension type '%s'", tp)
-  }
-  x <- stars::st_set_dimensions(x, d, values = vals, point = TRUE) |>
-    suppressWarnings()
-  stars::st_dimensions(x)[[d]]$refsys <- class(vals)[[1]]
-  x
-  
-}
-
-.as_bbox <- function(x, crs_arg) {
-  if (is.numeric(x) && is.null(names(x))) {
-    names(x) <- c("xmin", "ymin", "xmax", "ymax")
-  }
-  x <- sf::st_bbox(x)
-  if (is.na(sf::st_crs(x))) sf::st_crs(x) <- crs_arg
-  x
-}
-
 .get_best_arco_service_type <- function(subset_request, dataset_version, progress,
                                         asset) {
-  if (progress) rlang::inform("Downloading product meta data")
-  
+
   meta <-
     cms_product_metadata(subset_request$product) |>
     dplyr::filter(startsWith(.data$id, subset_request$layer)) |>
@@ -504,27 +253,20 @@ cms_download_subset <- function(
 
     if (count_timec < count_geoc) {
       result <- time_chunked
-      attributes(result) <- c(attributes(result), list(dims = indices_timec))
     } else {
       result <- geo_chunked
-      attributes(result) <- c(attributes(result), list(dims = indices_geoc))
     }
   } else {
     indices <- .get_chunk_indices(subset_request, variables,
                                   result, dimnames, dim_properties)
-    attributes(result) <- c(attributes(result), list(dims = indices))
-    
+
   }
-  result$viewVariables <- result$viewVariables[variables]
-  attributes(result) <- c(attributes(result),
-                          list(dim_properties = dim_properties),
-                          list(var_properties = var_properties))
-  
+
   return (result)
 }
 
 .get_chunk_count <- function(indices) {
-  lapply(indices, function(x) lapply(x$chunk_id, function(y) length(unique(y)))) |>
+  lapply(indices, function(x) lapply(x, function(y) length(unique(y)))) |>
     lapply(dplyr::as_tibble) |>
     dplyr::bind_rows() |>
     dplyr::summarise(dplyr::across(dplyr::everything(), prod))
@@ -546,7 +288,7 @@ cms_download_subset <- function(
                    i = "Please report at <https://github.com/pepijn-devries/CopernicusMarine/issues>"))
   
   dims_alt <- c(elevation = "verticalrange", time = "timerange")
-  corrected_ranges <-
+  chunk_ids <-
     lapply(structure(dims, names = dims), function(dim) {
       dim_range <- unlist(dim_props[[dim]]$extent)
       
@@ -590,7 +332,6 @@ cms_download_subset <- function(
         rlang::abort(c(x = sprintf("Dimension type '%s' not implemented", dat$type),
                        i = "Please contact developers with regex"))
       }
-      
       if (length(coord_values) == 1) flex <- 1e-6 else {
         flex <- (coord_values |> diff() |> min())/10
       }
@@ -602,21 +343,11 @@ cms_download_subset <- function(
         dplyr::select(dplyr::any_of(variables)) |>
         as.list()
       
-      chunk_id <- lapply(dim_len, function(dl) floor((indices - 1L)/dl))
+      lapply(dim_len, function(dl) floor((indices - 1L)/dl))
       
-      if (any(lengths(chunk_id) == 0)) chunk_offset <- numeric() else
-        chunk_offset <- mapply(\(x, y) y*min(x), x = chunk_id, y = dim_len)
-      coord_values <- list(
-        values = coord_values,
-        indices = indices,
-        chunk_id = chunk_id,
-        chunk_offset = chunk_offset
-      )
-      
-      c(list(range = my_range), coord_values)
     })
   
-  corrected_ranges
+  chunk_ids
 }
 
 .code_to_period <- function(x) {
@@ -630,31 +361,43 @@ cms_download_subset <- function(
   )
 }
 
-.get_xarray_properties <- function(service, var) {
-  
-  zattrs <-
-    paste(service$href, var, ".zattrs", sep = "/") |>
-    httr2::request() |>
-    httr2::req_perform() |>
-    httr2::resp_body_json(check_type = FALSE)
-  
-  zarray <-
-    paste(service$href, var, ".zarray", sep = "/") |>
-    httr2::request() |>
-    httr2::req_perform() |>
-    httr2::resp_body_json(check_type = FALSE)
-  if (is.null(zarray$fill_value)) zarray$fill_value <- NA_real_
-  
-  chunk_dimensions <-
-    structure(
-      unlist(zarray$chunks),
-      names = unlist(zattrs$`_ARRAY_DIMENSIONS`)
-    )
-  
-  list(
-    zarray = zarray,
-    zattrs = zattrs,
-    dims = chunk_dimensions,
-    dim_order = zarray$order
-  )
-}
+#' Get a proxy stars object from a Zarr service
+#' 
+#' The advantage of
+#' [`stars_proxy` objects](https://r-spatial.github.io/stars/articles/stars2.html#stars-proxy-objects),
+#' is that they do not contain any data. They are therefore fast to handle
+#' and consume only limited memory. You can still manipulate the object
+#' lazily (like selecting slices). These operation are only executed when
+#' calling [stars::st_as_stars()] or `plot()` on the object.
+#' @inheritParams cms_download_subset
+#' @param asset An asset that is available for the `product`.
+#' Should be one of `"native"`, `"wmts"`, `"timeChunked"`, `"downsampled4"`,
+#' or `"geoChunked"`.
+#' @returns A [`stars_proxy` object](https://r-spatial.github.io/stars/articles/stars2.html#stars-proxy-objects)
+#' @author Pepijn de Vries
+#' @examples
+#' if (interactive()) {
+#'   myproxy <- cms_zarr_proxy(
+#'     product       = "GLOBAL_ANALYSISFORECAST_PHY_001_024",
+#'     layer         = "cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m",
+#'     variable      = c("uo", "vo"),
+#'     asset         = "timeChunked")
+#'   plot(myproxy["uo",1:200,1:100,50,1], axes = TRUE)
+#' }
+#' @export
+cms_zarr_proxy <-
+  function(
+    product,
+    layer,
+    variable,
+    asset
+  ) {
+    if (missing(variable) || is.null(variable)) variable <- character(0)
+    meta <-
+      cms_product_metadata(product) |>
+      dplyr::filter(startsWith(.data$id, .env$layer)) |>
+      dplyr::filter(dplyr::row_number() == 1)
+    meta$assets[[1]][[asset]]$href |>
+      .uri_to_vsi(FALSE) |>
+      .get_stars_proxy(variable)
+  }
