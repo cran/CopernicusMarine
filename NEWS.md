@@ -1,3 +1,15 @@
+CopernicusMarine v0.4.4
+-------------
+
+ * Added `vignette("proxy")` and `vignette("blosc")`
+ * In order to pass CRAN checks:
+   * Added safeguards to vignette
+   * Improved handling of comparing floating point numbers
+     when slicing stars_proxy objects.
+   * Added more rigorous checking of availability of required dependencies
+ * Added credentials check to all functions downloading
+   from S3 storage.
+
 CopernicusMarine v0.4.0
 -------------
 

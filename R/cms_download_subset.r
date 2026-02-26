@@ -2,12 +2,7 @@
 #'
 #' `r lifecycle::badge('experimental')` Subset and download a specific marine product
 #' from Copernicus.
-#'
-#' Currently, credentials are ignored. The subsetting service seems to be
-#' public. You can use this function without using your account. This might
-#' change in the future.
 #' @include cms_login.r
-#' @inheritParams cms_login
 #' @param product An identifier (type `character`) of the desired Copernicus marine product.
 #' Can be obtained with [`cms_products_list`].
 #' @param layer The name of a desired layer within a product (type `character`). Can be obtained with [`cms_product_services`] (listed as `id` column).
@@ -31,6 +26,7 @@
 #' asset available for the requested product and layer, in the order as listed
 #' before.
 #' @param ... Ignored (reserved for future features).
+#' @inheritParams cms_login
 #' @returns Returns a [stars::st_as_stars()] object.
 #' @rdname cms_download_subset
 #' @name cms_download_subset
@@ -53,8 +49,6 @@
 #' @author Pepijn de Vries
 #' @export
 cms_download_subset <- function(
-    username = cms_get_username(),
-    password = cms_get_password(),
     product,
     layer,
     variable,
@@ -64,11 +58,13 @@ cms_download_subset <- function(
     progress = TRUE,
     crop,
     asset,
-    ...) {
+    ...,
+    username = cms_get_username(),
+    password = cms_get_password()) {
   if (missing(asset)) asset <- NULL
   if (is.null(asset)) asset <- "default"
   asset <- match.arg(asset, c("default", "ARCO", "static", "omi", "downsampled4"))
-  
+
   if (!missing(crop))
     rlang::warn("The `crop` argument is deprecated and ignored")
   
@@ -81,6 +77,10 @@ cms_download_subset <- function(
     timerange     = if (missing(timerange)) NULL else timerange,
     verticalrange = if (missing(verticalrange)) NULL else verticalrange
   )
+  if (progress) cli::cli_progress_step("Checking credentials")
+  
+  .try_login(username, password)
+  
   if (progress)
     cli::cli_progress_step("Obtaining best or specified service")
   service <- .get_best_arco_service_type(
@@ -93,10 +93,8 @@ cms_download_subset <- function(
   Sys.setenv(GDAL_NUM_THREADS = "ALL_CPUS")
   Sys.setenv(GDAL_HTTP_MULTICURL = "YES")
   Sys.setenv(GDAL_DISABLE_READDIR_ON_OPEN = "EMPTY_DIR")
-  
   mdim_proxy <-
-    service$href |>
-    .uri_to_vsi(progress) |>
+    .uri_to_vsi(service$href, progress) |>
     .get_stars_proxy(variable)
   
   if (progress)
@@ -122,13 +120,14 @@ cms_download_subset <- function(
     comparator <- sort(comparator)
     idx <- if (length(comparator) == 0) rep(TRUE, length(idx_end)) else {
       (idx_end > comparator[[1]] & idx_end < comparator[[2]]) |
-      (idx_start >= comparator[[1]] & idx_start <= comparator[[2]]) |
-        (idx_end > comparator[[1]] & idx_start <= comparator[[2]])
+      (idx_start %>=% comparator[[1]] & idx_start %<=% comparator[[2]]) |
+        (idx_end > comparator[[1]] & idx_start %<=% comparator[[2]])
 
     }
     result <- which(idx)
     if (length(result) == 0)
-      rlang::abort(sprintf("Dimension '%s' not within selected range", dm))
+      rlang::abort(sprintf("Dimension '%s' [%s - %s] not within selected range",
+                           dm, comparator[[1]], comparator[[2]]))
     result
   })
 
@@ -363,12 +362,14 @@ cms_download_subset <- function(
 
 #' Get a proxy stars object from a Zarr service
 #' 
-#' The advantage of
+#' `r lifecycle::badge('experimental')` The advantage of
 #' [`stars_proxy` objects](https://r-spatial.github.io/stars/articles/stars2.html#stars-proxy-objects),
 #' is that they do not contain any data. They are therefore fast to handle
 #' and consume only limited memory. You can still manipulate the object
 #' lazily (like selecting slices). These operation are only executed when
 #' calling [stars::st_as_stars()] or `plot()` on the object.
+#' 
+#' For more details see `vignette("proxy")`.
 #' @inheritParams cms_download_subset
 #' @param asset An asset that is available for the `product`.
 #' Should be one of `"native"`, `"wmts"`, `"timeChunked"`, `"downsampled4"`,
@@ -390,14 +391,19 @@ cms_zarr_proxy <-
     product,
     layer,
     variable,
-    asset
+    asset,
+    ...,
+    username = cms_get_username(),
+    password = cms_get_password()
   ) {
     if (missing(variable) || is.null(variable)) variable <- character(0)
+
+    .try_login(username, password)
+
     meta <-
       cms_product_metadata(product) |>
       dplyr::filter(startsWith(.data$id, .env$layer)) |>
       dplyr::filter(dplyr::row_number() == 1)
-    meta$assets[[1]][[asset]]$href |>
-      .uri_to_vsi(FALSE) |>
+    .uri_to_vsi(meta$assets[[1]][[asset]]$href, FALSE) |>
       .get_stars_proxy(variable)
   }

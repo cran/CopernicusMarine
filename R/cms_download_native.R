@@ -51,9 +51,12 @@ NULL
 #' }
 #' @rdname cms_download_native
 #' @export
-cms_download_native <- function(destination, product, layer, pattern, prefix, progress = TRUE, ...) {
+cms_download_native <- function(destination, product, layer, pattern, prefix, progress = TRUE, ...,
+                                username = cms_get_username(),
+                                password = cms_get_password()) {
   if (missing(pattern)) pattern <- ""
   if (missing(prefix)) prefix <- ""
+  .try_login(username, password)
 
   file_list <- cms_list_native_files(product, layer, pattern, prefix)
   
@@ -161,12 +164,14 @@ cms_list_native_files <- function(product, layer, pattern, prefix, max = Inf, ..
 
 #' Get a proxy stars object from a native service
 #' 
-#' The advantage of
+#' `r lifecycle::badge('experimental')` The advantage of
 #' [`stars_proxy` objects](https://r-spatial.github.io/stars/articles/stars2.html#stars-proxy-objects),
 #' is that they do not contain any data. They are therefore fast to handle
 #' and consume only limited memory. You can still manipulate the object
 #' lazily (like selecting slices). These operation are only executed when
 #' calling [stars::st_as_stars()] or `plot()` on the object.
+#' 
+#' For more details see `vignette("proxy")`.
 #' @inheritParams cms_download_native
 #' @param variable The variable name for which to create the `stars_proxy`.
 #' If omitted it will include all variables in the layer.
@@ -184,11 +189,14 @@ cms_list_native_files <- function(product, layer, pattern, prefix, max = Inf, ..
 #' }
 #' @author Pepijn de Vries
 #' @export
-cms_native_proxy <- function(product, layer, pattern, prefix, variable, ...) {
+cms_native_proxy <- function(product, layer, pattern, prefix, variable, ...,
+                             username = cms_get_username(),
+                             password = cms_get_password()) {
   if (missing(pattern)) pattern <- ""
   if (missing(prefix)) prefix <- ""
+  .try_login(username, password)
   if (missing(variable) || is.null(variable)) variable <- character(0)
-  
+
   file_list <- cms_list_native_files(product, layer, pattern, prefix)
   if (nrow(file_list) > 1)
     rlang::warn(c(
@@ -201,7 +209,6 @@ cms_native_proxy <- function(product, layer, pattern, prefix, variable, ...) {
   if (grepl("\\.nc$|\\.ncf$|\\.ncdf$|\\.netcdf$|\\.h5$", file_list$Key) &
       sf::st_drivers("raster", "^HDF5$")$vsi)
     fmt <- "HDF5:%s" else fmt <- "%s"
-  
   paste0(
     "https://",
     file_list$base_url, "/",
@@ -209,6 +216,6 @@ cms_native_proxy <- function(product, layer, pattern, prefix, variable, ...) {
     file_list$Key) |>
     .uri_to_vsi(FALSE, add_zarr = FALSE, streaming = FALSE) |>
     sprintf(fmt = fmt) |>
-    .get_stars_proxy(variable = variable)
+    .get_stars_proxy(variable)
   
 }

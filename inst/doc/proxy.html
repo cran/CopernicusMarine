@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Using stars_proxy Objects</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Using stars_proxy Objects</h1>
+
+
+
+<p>Using <a href="https://r-spatial.github.io/stars/articles/stars2.html#stars-proxy-objects"><code>stars_proxy</code>
+objects</a> in combination with the CopernicusMarine package introduces
+opportunities to efficiently work with Data from Copernicus Marine
+services on the fly.</p>
+<p>The great thing about these proxy objects is that they will not read
+any data unless it is needed. So, you can connect to a dataset from the
+Copernicus server without having to read raster data. Instead it will
+only collect meta data about the raster’s dimensions and bands
+(attributes). The actual raster data is only downloaded when you need
+it.</p>
+<div id="setting-up-a-proxy-object" class="section level2">
+<h2>Setting Up a Proxy Object</h2>
+<p>You can either set up a proxy object by calling
+<code>cms_native_proxy()</code> or <code>cms_zarr_proxy()</code>. The
+first uses the ‘native’ service. In this case the data is already
+structured in chunked files and the added value of proxy objects is not
+that obvious. Therefore, in this vignette, we will focus on objects
+created with <code>cms_zarr_proxy()</code>. It will connect with an
+entire layer in a product.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(CopernicusMarine)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="fu">library</span>(stars, <span class="at">quietly =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="co">#&gt; Warning: package &#39;sf&#39; was built under R version 4.5.2</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="co">#&gt; Linking to GEOS 3.13.1, GDAL 3.11.4, PROJ 9.7.0; sf_use_s2() is TRUE</span></span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>my_proxy_gc <span class="ot">&lt;-</span> <span class="fu">cms_zarr_proxy</span>(</span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>  <span class="at">product       =</span> <span class="st">&quot;GLOBAL_ANALYSISFORECAST_PHY_001_024&quot;</span>,</span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>  <span class="at">layer         =</span> <span class="st">&quot;cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m&quot;</span>,</span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>  <span class="at">asset         =</span> <span class="st">&quot;geoChunked&quot;</span>)</span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a>my_proxy_tc <span class="ot">&lt;-</span> <span class="fu">cms_zarr_proxy</span>(</span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a>  <span class="at">product       =</span> <span class="st">&quot;GLOBAL_ANALYSISFORECAST_PHY_001_024&quot;</span>,</span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a>  <span class="at">layer         =</span> <span class="st">&quot;cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m&quot;</span>,</span>
+<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a>  <span class="at">asset         =</span> <span class="st">&quot;timeChunked&quot;</span>)</span>
+<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a></span>
+<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a><span class="fu">print</span>(my_proxy_tc)</span>
+<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a><span class="co">#&gt; stars_proxy object with 1 attribute in 1 file(s):</span></span>
+<span id="cb1-19"><a href="#cb1-19" tabindex="-1"></a><span class="co">#&gt; $thetao</span></span>
+<span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a><span class="co">#&gt; [1] &quot;[...]/timeChunked.zarr&quot;</span></span>
+<span id="cb1-21"><a href="#cb1-21" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-22"><a href="#cb1-22" tabindex="-1"></a><span class="co">#&gt; dimension(s):</span></span>
+<span id="cb1-23"><a href="#cb1-23" tabindex="-1"></a><span class="co">#&gt;           from   to         offset  delta  refsys</span></span>
+<span id="cb1-24"><a href="#cb1-24" tabindex="-1"></a><span class="co">#&gt; longitude    1 4320             NA     NA      NA</span></span>
+<span id="cb1-25"><a href="#cb1-25" tabindex="-1"></a><span class="co">#&gt; latitude     1 2041             NA     NA      NA</span></span>
+<span id="cb1-26"><a href="#cb1-26" tabindex="-1"></a><span class="co">#&gt; elevation    1   50             NA     NA udunits</span></span>
+<span id="cb1-27"><a href="#cb1-27" tabindex="-1"></a><span class="co">#&gt; time         1 1373 2022-06-01 UTC 1 days POSIXct</span></span>
+<span id="cb1-28"><a href="#cb1-28" tabindex="-1"></a><span class="co">#&gt;                                                            values x/y</span></span>
+<span id="cb1-29"><a href="#cb1-29" tabindex="-1"></a><span class="co">#&gt; longitude            [-180.0417,-179.9583),...,[179.875,179.9584) [x]</span></span>
+<span id="cb1-30"><a href="#cb1-30" tabindex="-1"></a><span class="co">#&gt; latitude            [-80.04167,-79.95833),...,[89.95834,90.04166) [y]</span></span>
+<span id="cb1-31"><a href="#cb1-31" tabindex="-1"></a><span class="co">#&gt; elevation [-5727.917,-5274.784) [m],...,[-0.494025,0.5533251) [m]    </span></span>
+<span id="cb1-32"><a href="#cb1-32" tabindex="-1"></a><span class="co">#&gt; time                                                         NULL</span></span></code></pre></div>
+</div>
+<div id="selecting-an-asset-type" class="section level2">
+<h2>Selecting an Asset Type</h2>
+<p>The only downside from working with proxy objects is that you need to
+know which asset type you wish to use. When subsetting data with
+<code>cms_download_subset()</code> this selection is automated based on
+your selection criteria. But when working with a proxy object, you may
+not know which slices you wish to select in advance.</p>
+<p>In general, if you wish to work with long time-series in a small
+geographical area, it’s most efficient to work with
+<code>&quot;geoChunked&quot;</code> data. Whereas, if you want to work with a
+short time period, but on a large geographical scale, it is better to
+use <code>&quot;timeChunked&quot;</code> data.</p>
+</div>
+<div id="slicing-a-proxy-object" class="section level2">
+<h2>Slicing a Proxy Object</h2>
+<p>As you can see from the proxy object printed above, it has dimension
+that stretch pretty far. It has daily data for nearly four years, in 50
+depth layers with global coverage. If you would try to read this raster
+data, it will almost certainly fail as it would require thousands of Gb
+of memory which is simply not available on most devices.</p>
+<p>Fortunately, the proxy object can easily be sliced, by selecting
+index values with the bracket operator (<code>[</code>). The first index
+represents the band (attribute), and we skip it, next are the
+<code>x</code> and <code>y</code> coordinate, followed by the elevation.
+The last dimension is time, were we select the first four hundred
+records.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>time_slice <span class="ot">&lt;-</span> my_proxy_gc[,<span class="dv">2000</span>, <span class="dv">1000</span>, <span class="dv">48</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">400</span>]</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">show</span>(time_slice)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt; stars_proxy object with 1 attribute in 1 file(s):</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt; $thetao</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt; [1] &quot;[...]/geoChunked.zarr&quot;</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt; dimension(s):</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt;           from   to         offset  delta  refsys              values x/y</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt; longitude 2000 2000             NA     NA      NA     [-13.46,-13.37) [x]</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt; latitude  1000 1000             NA     NA      NA       [3.208,3.292) [y]</span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#&gt; elevation   48   48             NA     NA udunits [-2.646,-1.541) [m]    </span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt; time         1  400 2022-06-01 UTC 1 days POSIXct                NULL</span></span></code></pre></div>
+<p>As you can notice, this slicing is super fast. This is because no
+actual data is transfered yet. It isn’t until <code>st_as_stars()</code>
+is called when the data is downloaded. Since in this particular case we
+have only selected a single raster cell, it makes sense to cast the
+object to a <code>data.frame</code>. We can then plot the time
+series.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>time_slice <span class="ot">&lt;-</span> <span class="fu">st_as_stars</span>(time_slice)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_get_dimension_values</span>(time_slice, <span class="st">&quot;time&quot;</span>), time_slice<span class="sc">$</span>thetao,</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>     <span class="at">xlab =</span> <span class="st">&quot;date&quot;</span>, <span class="at">ylab =</span> <span class="st">&quot;temperature&quot;</span>, <span class="at">type =</span> <span class="st">&quot;l&quot;</span>)</span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
+<p>We can also select a specific area, for which we will use the time
+chunked proxy.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>geo_slice <span class="ot">&lt;-</span> my_proxy_tc[,<span class="dv">2000</span><span class="sc">:</span><span class="dv">2500</span>, <span class="dv">1500</span><span class="sc">:</span><span class="dv">1750</span>, <span class="dv">50</span>, <span class="dv">500</span>]</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="fu">plot</span>(geo_slice, <span class="at">col =</span> <span class="fu">hcl.colors</span>(<span class="dv">10</span>))</span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASAAAAEgCAMAAAAjXV6yAAAAxlBMVEUAAAAAADoAAGYAOjoAOmYAOpAAZpAAZrYAcJQAjpgAqJAAvn0YUIY6AAA6AGY6OgA6Ojo6OmY6ZmY6ZpA6ZrY6kLY6kNtCLHBLAFVmAABmOgBmOjpmkLZmkNtmtttmtv9s0F6QOgCQZgCQZjqQZmaQttuQ2/+2ZgC2Zjq2kGa2kJC2tra2ttu229u22/+2//+73TjbkDrbkGbbtmbbtpDb27bb29vb2//b/9vb///94zP/tmb/25D/27b/29v//7b//9v///81BwcbAAAACXBIWXMAAA7DAAAOwwHHb6hkAAATwUlEQVR4nO2diYLbthGGaTfu8nLTI43kNKnpHt5eSbRxj6zWiRfv/1IlMDgGwIDgAUqUhL+NLYkiSHycCyBEFyxrUMW5T2DrOgugT2+Konj5Pb3xqd9WvD3tCQ3oTIBePQ5tv78WQD8z9vyO7OvPg/spQM9/K4ov4KN//6G3m998B2+uBdAPv/o+AIhvGZAC9PDLx+c/fck45gL0pdh+LYDuX4YA3YcCDEgBuu85PN3xF8Vn3/aYPrx+8V58ngHZFvRUyEaeijux+1UAEm5x1wP68V3x4hv+yU9/LooXXz/KLYx9+Bze8y2vi+J336ld3Rh0D4bTf/CPb/lf1wXos69k8Pj4WoSROwXoQYcVuUWblZPFPCu8DkDKxYpX37EfuMHcF79/5EbxFrZ8evOyN5mPnMV98YXYcid3dAB9enPnNHxVgLh78B5/fC26+fzuTseg//7zL5/34UXyeH6nTOi2APG+8j+lHxU84ApA8gO+BbL3gwo1t+ViHqD+U3Cx4rdf/+s/b+KATJCWr64V0JfWlifRS84i5mK9rcn38sXVAOovtwHUR6Nv+pcfeCjiW/qa5pH99FURD9KiUPxr38rfXwOZawH0AHWQBKRiDncSvkUM2cHj0BYhD9CVDjU+9ebxowEkCkUoB/mWx956il/8UUQVUUJ+8T+9ozeaf/7waz5Y/RbeXQug2bqZ6Y65yoAiyoAiyoAiynPSV6QMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKIMKKJiv1C7QbVBlWVZlbyBGSe95/+bue9ULQU0j44AVHFAbE4v0fHTE3G0ENBM+ym5qqqd2UXrFJIjsbW2BVGUSslnpot557ACFqPFMahHFKI0CIjzaWf0zjn0BQDah80oCKgSanfLAEk+2wc05GVUJNKAWjbLwQQY0TyHcwGACETCdiQgjxAAKvuvzOEjPBqOuR8DqKB1UkDDUZoAxFN8WbaT8bA92I0+6gjCxZHSSQGFHSwcpXtC1UxA6LBj3OvGAO13+LBjXDQRoB2y3cl8ApAEHzLH96OMao6H4STG49upAQGhiZzkjgFAlPUIQHPoIECi9XE9TAFI92kGIAtUjE+p+CwExFvf7U4CCPXIpNBlZMJ0KqWZfMwhy5H2kxjQHPsZz6cHU9dL+BhAPLqdHNAeQsl4MNMA9fZT18sAmWNPKDKTAprhYAQg0nqAj+VgI4OIx0ec5ui9EgLaTwK08/GQdbOQ4NLzYYy/UHymAdrLaUQRocfvljZIz0nxluEEvKusTAACC5pqPmxnfHrPJvhoQkDcy4xtBJlgPHsbzxAcEYC4BfWdK9tp5rNj6CpOHL6nBOQh8NBYTjgKEMzOCzysVuYztYje6YHvfruAdnJIEfCxIUCQv2odfaaKH6Zvh2eubQByPpAfk9TaGJ6q1h42Dw8/H5jinzUDuRhQSwHaU4TmAALfUgY0uXNMzgDBTaLzAyKG5TgAEVYUmDM09iOtZ3K3jHbaUXkMnL7/REDqiYXq+U8eIJKQhmdYYUADDiYBzQw+PDz3rQCgdtT8mKdpgB7koxzZk3xRtO1unLQF2bd5hgGVyoLmEsKhvl0f0PM7/bzVB3jOWiFPYDQjZVFqpyCcVmcvQWceId4KNyGYJZlcXIoeTgH06Y1+etoTONkEQNixdnJcEZpWLRGfuQGINy7RyImk9QEtsyAaEHI1DYr3SQKq5kdokb0woClDMK2pMUiaEIpBnjAUOFGLkAKCv9e2LiBRuiyIznBgGXxMGJreyMQspp7Rq570OB8Q/p7aD8dmMWxfkt9hgKH5tDNNaHEdhM/BI9QPE5mDzAekd9MRqJJzP4v4KEAmrqUENPYea6EyBG1AVphxPg2K39RZMLZQUsdWJ8VPdP1C8UE9B/RBZrFSK4CI+YAG8nspXWxJ+pLC12KnrGl6MxOD9Iv38l9p8AFhQnYA9kwnzEcBWk5oz3aOxIB+cjsz0rx4fjgByAlFyoAIxyIAyZ1LlOGXASKcmgOaTGhWoXj/6nEsoB1z6bRkCV0iQkksyCc0LwjNKxTv7+KA7BIQiJRoC0Jja+EEkBIBqFrbxZRj8XIoAKj0ELUeH2VBqMglAaW3oNUB6VJa/SsgVpCG/1xCxl5KG5DZy+ZTagtaWEefA5C3O+qlHGOSbtZagEjPsm0ogYu55UV7ijrI290C5OJpW8wHl9xDcMTqjeVpngA0w4DSANKjZU8WIINx0HpKdaN5YQzC7nxWQKbHNCB7mRj+PmMUIcC0uJJm8qrpawQhaCqjJIB0wCUAtQ6gthzmA4CSEILSx5gR/D24iz8WSeFiXoTBfAidChB3M3l+CBBNaMfUubk9TBiD0MxCkA8mwWhCwGd5EBL9lmM/e+xKfUlNQrnHTGRBumdyOlmZFDGiGMMnNSBmlUUt9iQ4r6pSfNYARIpKbA4Dmg9ysQSIpGuxsqUBodGfXoO0KqCq8lF5cCqwEQXIBacNqObLXZYiUpkBMoaq4fuPmfYrufJI3GLyAB0oJbAgh5BFQDIg+ehYIErp5XyAEBynVeHaHIizgeldeUgvSJ8AENF96fID3wBAy6MQ2+kUKygpG6r0otAaa11AlYofuuceggrLfOxamD7rxXxUUu25yBOrzBVomqauBvmkBqSzAQY2ApC3OYKnHO16Kp2K+SDdNv+j4f9vpCufBpAML8iN0KeV1fkIIHF5h+xnnGnxFlkJ5YZtmg2X10jlx7zkgGwintHwU+SLDSOERBeGrGjcXEglAPF7ca7rNmP9N7WLITsqjcNhPLBYlQJUoXJNAGJBQuXI6NSXgG3PB1qvcUAuRybIJIAcBrq/1oZa2Q9TYcAAMoUAMqCmCVxmnv3FtsjJ9fEEViQZv4b1fOLIY3u4HJBnJJULyEqkvIcuIEPIA0QctGnoCOIDAj56ob5smscm1o4ktByQz0fEaWxALiCmV81jQIiQiqMkg6bpum4EoD5vidUSKnvBWAJ2m/BzqPSAysr5sHbEVBYziPB4rZI5mCPyj1hL++m6YUA7uXBdcQf2kro44GkAUfbjhmZVY9glmQVI1bmtuvEs/KshCPVoJKEmGGX5PXi51MZkADkAbvih+y+sEoM+veE3Dp/wKlefT+2+V3ZTVbLOEHz0L1MsCUISEBlnpHtxSoOZXq1JLvX0gBwB8zYrtiYgsfhO3YSmANU2ncpL1pYF0YQqRcgxIQg+Igp1g/fN+EIkPsAwcNT5iM3l6B99FB2lAUASjVqjOGRBtZx/cgBVdZiQnhrRgCwjEu7FzYCfZFNVYUR7+OElrh0qMwkniiIx5ZEe0MfXApBa5TpkQdyRmAeowoBqEhCPQ40hZPbtqcgExwEN/bwF+JiwD+cjBqdM/bpz1Hqh9BZUIUCGj+qkuZIiDtnVECZU1w4hDqWRyU0EoUEf49VzK5fSSDUQvVSVxQmlB8QX5d0xFa7jgFRMpvjUbjGES6JKkwCfgsDTIAkfC3UL7sTb1arMf0w3nB4QMHrxXq8CHmNBQQMKEYKcX6FALfDo/D4RkD4bg1uW6aPGG1MBubsTfHAMcud1rO+FCcnQWmMgNWbTCUDhRL8THiYIoNOoFSLZ2pjflwcAjV7latmMXQMq+2EYEIw0YMBplQQWGT1x31DqNKVBQKIlfgbqzJQBsWCVRfWQPIUpFqSZOH4j1vcI66GH3Y7hleSozkMkjIepEUfQhNQQQx1HnBRHC6eicuQIQkkAOVMt2pwqyYbsh8vCihfYD3XsAD42oAAhVQNpQOKPRtedKkwnBqR+iGB+UldgMCSg0M0t31rswb/FvNHFj+TDZBgJmRC/OUgB0iYTmHNdCEivvDO7jwJEyR2yYbfy1WjrkZ2qIfkHutjz4TcxekB6+kSP5A2gUbOSE13s+d2dCwhnKw2o1vcORIz2z6SuvFGtB6hxU1eH9pffoPvYckBtJX9Urtpt0MiuCu67DFBfAb3FbwvZIe+yyxu5NRAiABlTCwGyT6mzABm3o6esS1iTyCcOTbudNfQdOau9OEgrIJ6T4ff+jgQg7FE2H1V9mP7hGpICxGCivpT3UN0INEFLAUmPcpystuyA2M8d0duACNtxAaHvEHx6QPsSTeRC8/MAub4hNAnQsBpGnRfBJwDIKmBxAwMmVEoLsofz2wTEqNOqnGk1NzR7dPgkHsbDZQB5B2h7A3IW3AgXm8FnZUCNCqN2HwhAnvn0DtXZfDq7g2EX40/BlZVipW9hBnz93IDkFXaucSBvmVGk5VowC9yFLcg9qd2OiYc6lGr5BESgyG2QcwAKBFJ939AFRHiXnia3Q5Chg9tWD0yB+VaBRvxRQxm+PQuiAanbwIPRhwKE2sDWYxpHz1GBqX9zs0ckwc0FaU2HuHaRwtDlQ1kQrCjUMVr+skg8BL4t7fY7IoiN7KEbD4TSADJ8Gh9R5UwBhNOXb0IiMzbqmSeSUIueT4BnTkTTvKGZFrQSIFQL1wKQS0gAivEJAAID4pNuCJBYo6Dvq1VqrAdtd0BoC4AachpQ9MnZl0Rj87F9TJohjj/4wYpwD0k8tUouvkIziaKxs1hQo1aCDQJqCEBk8nIAWRbUaEDiDwoQ5KwGAbIanUFoKaBmFCDpEySgIT6Oi0ET6k8LkKjZXUC48blpLAUgfSfF6S5rUMHi1nnGgohpZx+PZUIYENNN8GFfU+GlIXqSDWLQ2KWfqwCSf9t2w+Qp0YBoH6PNRwJivJEOmoblZxWatxaprUINQjPiFd+fmriL95C8JZUAEP4WzScGyF1yoioh8LVG5HkBCB9UJS3UlAY0a91+SkCOg1mEOvPSACKq6DAfnsagFdFr7mhiGKxW5EnxtgDmQbbTj3oPYsdZ6/aTAFIT6J6DGULi8vNMjT6vyEG86poH6GABUg3BTnJnuEqdIco6UUMfZg3DkgJqmjAd2adOXnpMyAUkbScASNWKXYdyvrwNDfMj4jJ1Gs9mAFHyAXW6h1qUAQEKn8+hswjp/MQXbCDnlPFGH1k0NmuUcUpALACI+THoEDIgA6gzBinXDCH7a2w+84epsoctpfGPKp3KJ0QIQogxoACgA+zUMJHzAYiIvRqvIGIdeuYgbBYg/1GlJBk6BMlLTgJC8QdQEHzEx26jjW4Eedl8HL4mASIeNBmxHNQV7RPM7oAEZFtNCFDntmoaadybr2k0CRDxqFIPj0+o82RtbiAJ0l7lEULNMuw50MISEgGlt6CAfw0BchxsCBAKv/ZRarYKn8kxyH1UaTQ8Mz54GuBj4usIQB4Wo7m3dWKamMW8R5U6cMiE6gIKExpk42SnE8n+hzGUZtdBHXUZBz0MRufDFsQgeR38ptdXANDoRZweIOJLEUDwAwyfz9GyH8ZNKEWPJyqtBXUdZUKGDA1IfcGiczxiNAt6uFCpAHUwXuxggGR/KWg61vaDw+d4QCZzPkKTABGLOHGSlgoDChHyBqfiCSvscBafcjTNgvxFnB4eCoP6RqBVNybLR9Bsgs9UF/MWcY4BBGm+CSZpAOHg4Ra0oF/JNDUGuYs4CUDBUpoFChmdpCw+x0X9Sib6n9qdGKSHHczEoIjP3AiggTR/i4DwMCJUSKNCebAxC89G+CwH1DmAqLGqGUgMNnYDgAKD+XEGxCw+1wnIWcNhjUGiVc0mDSi5BVlbbUCRpg63Bwhu5gGgaNG3UT5rxCCohOy1AwBogNJW+aQHhNbJWYAOw2PPwyYjNEsLCKUxq3iUhMTUIGdEkbL5bIhQUkAdDsr2p3o6g3a0reJZCVDnf4rne+imNoknNaCO4oNcbCgSbZPPSQAJDRkP1zbxJAcURDSKT4oOpdY6gHxCY8wnRX+Saw1AIQ+zd+VvN5u7jJID8u4zu4COxwNHARn/FgEFpOyHvIGRAWVAUQEaB9D2+aQBJBegDuJh8MUgnmsGxDs73tVuDhB0dgagS8CTAJDq7hhHCxNas4vLtBSQFVQsDNfBZxog4nHJNKBDEJDBw45s+3jmALIfl2znpQOCMMSHTyBudwBvaTIg52G3B5fQwQJkOB3wb3gYDDcuGBC9iJN4XLILyLEmY0nWpuNBcrlYQPSXR1hQXBcRmo0mAvIel3ztfCanefdxyfP5XAihpHXQREJr9iuZTg6IXUh6VzolIL3XhbAROgugS9JpAEVuamxZJwHUxW77bFhrAzpKQhfrY6cEtGY/VlN6QDyB43fayS4lsdtaB9AxBOjyEBW0Ru9OupUPSCSyS6oPU6lwObhv7Q23h6jANmMsR704oi3qxW0hKhAQHHzgBR66WyZ0g4COYCRHn4wFCP2e8DaEAGkbUqRIQjfGRwKieFCI8Jtzn/mJVCC7maZzn/mJlAFFVIx3sNskVMzmkwFlQlzFfD63wWgJoIuau5+rYpEBZUAxEzr36a+vbEERZUARbQPQhlkvBJSmW1s2xqUWlKBfCUmvoPMDUi2xbebEZYBSdAoB2iKhpYCWy7DeZGl+fkCaULIGkyoDimj0LdhbVQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYUUQYU0f8BICYgB5tNgg4AAAAASUVORK5CYII=" /><!-- --></p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
