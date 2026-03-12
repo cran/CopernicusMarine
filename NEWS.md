@@ -1,3 +1,15 @@
+CopernicusMarine v0.4.5
+-------------
+
+ * Added `vignette("product-info")`
+ * Omitting subset-arguments in `cms_download_subset()` calls is now allowed
+ * Removed deprecated argument 'crop' in `cms_download_subset()`
+ * Added warnings for mismatch between requested and available
+   dimension ranges for `cms_download_subset()`
+ * Fix for [issue 143](https://github.com/pepijn-devries/CopernicusMarine/issues/143)
+ * Added tests
+ * Updated documentation
+
 CopernicusMarine v0.4.4
 -------------
 
@@ -5,7 +17,7 @@ CopernicusMarine v0.4.4
  * In order to pass CRAN checks:
    * Added safeguards to vignette
    * Improved handling of comparing floating point numbers
-     when slicing stars_proxy objects.
+     when slicing stars_proxy objects
    * Added more rigorous checking of availability of required dependencies
  * Added credentials check to all functions downloading
    from S3 storage.

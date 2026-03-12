@@ -7,19 +7,19 @@
 #' Can be obtained with [`cms_products_list`].
 #' @param layer The name of a desired layer within a product (type `character`). Can be obtained with [`cms_product_services`] (listed as `id` column).
 #' @param variable The name of a desired variable in a specific layer of a product (type `character`).
-#' Can be obtained with [`cms_product_details`].
+#' Can be obtained with [`cms_product_details`]. When omitted, all variables are selected.
 #' @param region Specification of the bounding box as a `vector` of `numeric`s WGS84 lat and lon coordinates.
 #' Should be in the order of: xmin, ymin, xmax, ymax.
+#' When omitted, the entire available region is selected.
 #' @param timerange A `vector` with two elements (lower and upper value)
 #' for a requested time range. The `vector` should be coercible to `POSIXct`.
+#' When omitted, the full available time range is selected.
 #' @param verticalrange A `vector` with two elements (minimum and maximum)
 #' numerical values for the depth of the vertical layers (if any). Note that values below the
 #' sea surface needs to be specified as negative values.
+#' When omitted, the entire available vertical range is selected.
 #' @param progress A logical value. When `TRUE` (default) progress is reported to the console.
 #' Otherwise, this function will silently proceed.
-#' @param crop `r lifecycle::badge('deprecated')`. This version now
-#' uses the GDAL library to handle the subsetting and downloading of
-#' subsets. The `crop` argument is therefore no longer supported.
 #' @param asset Type of asset to be used when subsetting data. Should be one
 #' of `"default"`, `"ARCO"`, `"static"`, `"omi"`, or `"downsampled4"`.
 #' When missing, set to `NULL` or set to `"default"`, it will use the first
@@ -56,7 +56,6 @@ cms_download_subset <- function(
     timerange,
     verticalrange,
     progress = TRUE,
-    crop,
     asset,
     ...,
     username = cms_get_username(),
@@ -65,17 +64,17 @@ cms_download_subset <- function(
   if (is.null(asset)) asset <- "default"
   asset <- match.arg(asset, c("default", "ARCO", "static", "omi", "downsampled4"))
 
-  if (!missing(crop))
-    rlang::warn("The `crop` argument is deprecated and ignored")
-  
   if (missing(variable) || is.null(variable)) variable <- character(0)
+  region        <- if (missing(region)) NULL else region
+  timerange     <- if (missing(timerange)) NULL else timerange
+  verticalrange <- if (missing(verticalrange)) NULL else verticalrange
   subset_request <- list(
     product       = product,
     layer         = layer,
     variable      = variable,
-    region        = if (missing(region)) NULL else region,
-    timerange     = if (missing(timerange)) NULL else timerange,
-    verticalrange = if (missing(verticalrange)) NULL else verticalrange
+    region        = region,
+    timerange     = timerange,
+    verticalrange = verticalrange
   )
   if (progress) cli::cli_progress_step("Checking credentials")
   
@@ -93,6 +92,7 @@ cms_download_subset <- function(
   Sys.setenv(GDAL_NUM_THREADS = "ALL_CPUS")
   Sys.setenv(GDAL_HTTP_MULTICURL = "YES")
   Sys.setenv(GDAL_DISABLE_READDIR_ON_OPEN = "EMPTY_DIR")
+
   mdim_proxy <-
     .uri_to_vsi(service$href, progress) |>
     .get_stars_proxy(variable)
@@ -102,8 +102,9 @@ cms_download_subset <- function(
 
   dms <- stars::st_dimensions(mdim_proxy)
   idx <- lapply(names(dms), \(dm) {
-    idx_start <- stars::st_get_dimension_values(mdim_proxy, dm, where = "start")
-    idx_end   <- stars::st_get_dimension_values(mdim_proxy, dm, where = "end")
+    idx_start  <- stars::st_get_dimension_values(mdim_proxy, dm, where = "start")
+    idx_end    <- stars::st_get_dimension_values(mdim_proxy, dm, where = "end")
+    idx_center <- stars::st_get_dimension_values(mdim_proxy, dm, where = "center")
     if (dm != "time") {
       idx_start <- as.numeric(idx_start)
       idx_end   <- as.numeric(idx_end)
@@ -111,11 +112,12 @@ cms_download_subset <- function(
     comparator <-
       switch(
         dm,
-        longitude = region[c(1, 3)],
-        latitude = region[c(2, 4)],
-        time = lubridate::as_datetime(timerange),
-        elevation = verticalrange
+        longitude = if (is.null(region)) NULL else region[c(1, 3)],
+        latitude = if (is.null(region)) NULL else region[c(2, 4)],
+        time = if (is.null(timerange)) NULL else lubridate::as_datetime(timerange),
+        elevation = if (is.null(verticalrange)) NULL else verticalrange
       )
+    if (length(comparator) == 0) return(rep(TRUE, length(idx_center)))
     if (length(comparator) == 1) comparator <- comparator[c(1,1)]
     comparator <- sort(comparator)
     idx <- if (length(comparator) == 0) rep(TRUE, length(idx_end)) else {
@@ -125,9 +127,20 @@ cms_download_subset <- function(
 
     }
     result <- which(idx)
+    report_range <- range(c(idx_start, idx_end))
+    if (dm %in% c("longitude", "latitude")) report_range <- range(idx_center)
     if (length(result) == 0)
-      rlang::abort(sprintf("Dimension '%s' [%s - %s] not within selected range",
-                           dm, comparator[[1]], comparator[[2]]))
+      rlang::abort(sprintf("Dimension '%s' not within available range [%s; %s]",
+                           dm, report_range[[1]], report_range[[2]]))
+    threshold <-
+      (max(as.numeric(comparator)) - max(as.numeric(idx_end))) /
+      max(c(diff(as.numeric(idx_start)), diff(as.numeric(idx_end)))) > 0.05 ||
+      (min(as.numeric(comparator)) - min(as.numeric(idx_start))) /
+      max(c(diff(as.numeric(idx_start)), diff(as.numeric(idx_end)))) < -0.05
+    if (threshold) {
+      rlang::warn(sprintf("Requested range '%s' well beyond available range [%s; %s]",
+                           dm, report_range[[1]], report_range[[2]]))
+    }
     result
   })
 
@@ -169,7 +182,6 @@ cms_download_subset <- function(
 
 .get_best_arco_service_type <- function(subset_request, dataset_version, progress,
                                         asset) {
-
   meta <-
     cms_product_metadata(subset_request$product) |>
     dplyr::filter(startsWith(.data$id, subset_request$layer)) |>
@@ -272,6 +284,10 @@ cms_download_subset <- function(
 }
 
 .get_chunk_indices <- function(subset_request, variables, chunk_info, dims, dim_props) {
+  cl <-
+    lapply(chunk_info$viewDims, \(x) min(unlist(x[["chunkLen"]]), na.rm = TRUE)) |>
+    unlist() |>
+    suppressWarnings()
   chunk_dimlen <-
     lapply(dims, function(y) chunk_info$viewDims[[y]]$chunkLen) |>
     dplyr::bind_rows() |>
@@ -280,7 +296,7 @@ cms_download_subset <- function(
         unique(stats::na.omit(c(...)))
       }),
       .check = lengths(.data$.generic) == 1L,
-      dim = dims)
+      dim = names(cl[is.finite(cl)]))
   
   if (!all(chunk_dimlen$.check))
     rlang::abort(c(x = "Detected parameters with incompatible chunk dimensions",
@@ -295,9 +311,12 @@ cms_download_subset <- function(
       if (!is.null(alt_dim) && alt_dim %in% c("x", "y")) {
         req_range <- subset_request$region[paste0(alt_dim, c("min", "max"))] |> unname()
       } else {
-        req_range <- subset_request[[
-          dims_alt[[which(names(dims_alt) == dim)]]
-        ]]
+        selection <- which(names(dims_alt) == dim)
+        if (length(selection) > 0) {
+          req_range <- subset_request[[
+            dims_alt[[selection]]
+          ]]
+        } else req_range <- NULL
         if (is.null(req_range) || all(is.na(req_range)))
           req_range <- dim_range else
             req_range <- range(req_range, na.rm = TRUE)
@@ -317,7 +336,10 @@ cms_download_subset <- function(
       
       dat <- chunk_info$viewDims[[dim]]$coords
       coord_values <- if(dat$type == "minMaxStep") {
-        dat_len <- chunk_info$viewDims[[dim]]$chunkLen[[1]]
+        dat_len <- chunk_info$viewDims[[dim]]$chunkLen
+        if (length(dat_len) == 0) {
+          dat_len <- dat$len
+        } else dat_len <- dat_len[[1]]
         dat_len <- dat_len*ceiling(dat$len/dat_len)
         
         dim_range[[1]] + (seq_len(dat_len) - 1L) * dim_props[[dim]]$step
