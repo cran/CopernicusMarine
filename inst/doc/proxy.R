@@ -36,8 +36,9 @@ show(time_slice)
 opar <- par(mar = c(3, 3, 0.5, 0.5), mgp = c(2, .8, 0))
 
 ## ----plot_time_slice, eval=eval_chunks----------------------------------------
+time_vals <- st_get_dimension_values(time_slice, "time")
 time_slice <- st_as_stars(time_slice)
-plot(st_get_dimension_values(time_slice, "time"), time_slice$thetao,
+plot(time_vals, time_slice$thetao,
      xlab = "date", ylab = "temperature", type = "l")
 
 ## ----reset_par, results='hide', echo=FALSE------------------------------------

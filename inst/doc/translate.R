@@ -3,11 +3,12 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+knitr::opts_knit$set(upload.fun = identity)
 eval_chunks <-
   CopernicusMarine:::has_blosc &&
   curl::has_internet() &&
   CopernicusMarine::cms_get_password() != "" &&
-  sf::st_drivers("raster", "^HDF5$")$vsi
+  any(sf::st_drivers("raster", "^HDF5$")$vsi)
 
 ## ----translate, eval=eval_chunks----------------------------------------------
 library(CopernicusMarine)

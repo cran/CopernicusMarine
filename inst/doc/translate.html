@@ -162,13 +162,9 @@ link can be used to enter a subset of the data. The screen capture video
 below demonstrates how this form can be used to specify a request. It
 also shows how you can copy this request, in the form of command line
 (or Python) code, to the clipboard.</p>
-<div class="float">
-<img
-src="https://raw.githubusercontent.com/pepijn-devries/CopernicusMarine/refs/heads/master/pkgdown/media/obtain_cli_code.gif"
-alt="Demonstration of copying request code to clipboard" />
-<div class="figcaption">Demonstration of copying request code to
-clipboard</div>
-</div>
+<p><img src="https://raw.githubusercontent.com/pepijn-devries/CopernicusMarine/refs/heads/master/pkgdown/media/obtain_cli_code.gif"
+  alt="Demonstration of copying request code to clipboard"
+  data-external="1" width="942"></p>
 <p>Once on the clipboard, you can translate the request code to an R
 named <code>list</code> with <code>cms_translate()</code>.</p>
 </div>
@@ -214,11 +210,7 @@ the data? You can pass the named <code>list</code> as arguments to
 <code>cms_download_subset()</code> using <code>do.call()</code>. Like
 this:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">do.call</span>(cms_download_subset, translated)</span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="co">#&gt; Warning in max(c(diff(as.numeric(idx_start)), diff(as.numeric(idx_end)))): no</span></span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt; non-missing arguments to max; returning -Inf</span></span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt; Warning in max(c(diff(as.numeric(idx_start)), diff(as.numeric(idx_end)))): no</span></span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt; non-missing arguments to max; returning -Inf</span></span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="fu">plot</span>(result, <span class="at">col =</span> <span class="fu">hcl.colors</span>(<span class="dv">100</span>), <span class="at">axes =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">plot</span>(result, <span class="at">col =</span> <span class="fu">hcl.colors</span>(<span class="dv">100</span>), <span class="at">axes =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
 <p><img src="translate_files/figure-html/download-translation-1.png" alt="Data downloaded using translated query code"  /></p>
 </div>
 

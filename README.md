@@ -69,6 +69,12 @@ If you want to explore the available products and their layers, you
 should consult `vignette("product-info")`. Please check the manual for
 complete documentation of the package.
 
+For an excellent tutorial showing how to combine multiple spatial
+datasets from different sources (amongst which is CopernicusMarine),
+check out: [EMODnet Biology Geospatial R Tutorials (Tutorial
+4)](https://r-rse.github.io/emodnet-bio-r-geo-tutorials/tutorials/tutorial-04.html)
+by [Anna Krystalli](https://github.com/annakrystalli)
+
 <h3 id="sec-subset">
 
 Downloading a subset
@@ -90,7 +96,6 @@ my_data <-
     verticalrange = c(0, -0.5),
     progress      = FALSE
 )
-#> DEBUG: detect.driver returned: ZARR (length: 1)
 
 plot(my_data["vo", drop = TRUE], col = hcl.colors(100), axes = TRUE)
 ```
@@ -173,7 +178,9 @@ leaflet::leaflet() |>
   addCmsWMTSTiles(
     product     = "GLOBAL_ANALYSISFORECAST_PHY_001_024",
     layer       = "cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m",
-    variable    = "thetao"
+    variable    = "thetao",
+    time        = "2026-01-01 UTC",
+    elevation   = -1.5413750410079956
   )
 ```
 

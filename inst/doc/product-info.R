@@ -28,7 +28,7 @@ meta_info$properties[[1]]$`cube:dimensions` |> summary()
 ## Get the variable properties for the first layer in this product
 meta_info$properties[[1]]$`cube:variables` |> summary()
 
-## ----product-proxy, warning=FALSE, eval=eval_chunks---------------------------
+## ----product-proxy, warning=FALSE, eval=eval_chunks&&CopernicusMarine:::has_blosc----
 library(stars) |> suppressMessages()
 
 myproxy <- cms_zarr_proxy(
