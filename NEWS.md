@@ -1,3 +1,12 @@
+CopernicusMarine v0.4.8
+-------------
+
+ * Moved `paws` dependency from `Imports` to `Suggests`.
+ * Redesigned logo
+ * Updated documentation
+ * Wrapped all examples accessing online resources
+   in `if (interactive()) {}`
+
 CopernicusMarine v0.4.7
 -------------
 
