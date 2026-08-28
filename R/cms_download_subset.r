@@ -1,4 +1,4 @@
-#' Subset and download a specific marine product from Copernicus
+#' Subset and Download a Specific Marine Product from Copernicus
 #'
 #' `r lifecycle::badge('stable')` Subset and download a specific marine product
 #' from Copernicus.
@@ -21,13 +21,15 @@
 #' @param progress A logical value. When `TRUE` (default) progress is reported to the console.
 #' Otherwise, this function will silently proceed.
 #' @param asset Type of asset to be used when subsetting data. Should be one
-#' of `"default"`, `"ARCO"`, `"static"`, `"omi"`, or `"downsampled4"`.
+#' of `"default"`, `"ARCO"`, `"static"`, `"omi"`, `"downsampled4"`,
+#' "`timeChunked`", or `"geoChunked"`.
 #' When missing, set to `NULL` or set to `"default"`, it will use the first
 #' asset available for the requested product and layer, in the order as listed
 #' before.
 #' @param ... Ignored (reserved for future features).
 #' @inheritParams cms_login
 #' @returns Returns a [stars::st_as_stars()] object.
+#' You can save it to a file with [cms_write_ncdf()]
 #' @rdname cms_download_subset
 #' @name cms_download_subset
 #' @examples
@@ -63,7 +65,8 @@ cms_download_subset <- function(
     password = cms_get_password()) {
   if (missing(asset)) asset <- NULL
   if (is.null(asset)) asset <- "default"
-  asset <- match.arg(asset, c("default", "ARCO", "static", "omi", "downsampled4"))
+  asset <- match.arg(asset, c("default", "ARCO", "static", "omi", "downsampled4",
+                              "timeChunked", "geoChunked"))
 
   if (missing(variable) || is.null(variable)) variable <- character(0)
   region        <- if (missing(region)) NULL else region
@@ -94,13 +97,55 @@ cms_download_subset <- function(
   Sys.setenv(GDAL_HTTP_MULTICURL = "YES")
   Sys.setenv(GDAL_DISABLE_READDIR_ON_OPEN = "EMPTY_DIR")
 
-  mdim_proxy <-
-    .uri_to_vsi(service$href, progress) |>
-    .get_stars_proxy(variable)
+  if (length(variable) == 0) variable <- names(service$viewVariables)
+  mdim_proxy <- .uri_to_vsi(service$href, progress)
+  mdim_proxy <- lapply(variable, .get_stars_proxy, vsi = mdim_proxy)
+  names(mdim_proxy) <- variable
   
   if (progress)
     cli::cli_progress_step("Subsetting and downloading data")
 
+  result <- lapply(variable, \(var) {
+    .subset_proxy(mdim_proxy[[var]],
+                  region = region,
+                  timerange = timerange,
+                  verticalrange = verticalrange)
+  })
+  all_dims <- lapply(result, dimnames) |> unlist() |> unique()
+  missing_dims <- lapply(result, \(x) {
+    setdiff(all_dims, dimnames(x))
+  }) |> unlist() |> unique()
+  if (length(missing_dims) > 0) {
+    dim_vals <- lapply(missing_dims, \(x) {
+      for (i in length(result)) {
+        dv <- stars::st_dimensions(result[[i]])[[x]]
+        if (length(dv) > 0) break
+      }
+      dv
+    }) |> stats::setNames(missing_dims)
+    result <- lapply(result, \(x) {
+      for (dm in names(dim_vals)) {
+        current_length <- stars::st_get_dimension_values(x, dm) |> length()
+        if (current_length > 0) next
+        val <- dim_vals[[dm]]
+        new_length <- new_length <- val |> seq() |> length()
+        x <- replicate(new_length, x, simplify = FALSE)
+        x <- do.call(c, c(x, along = dm))
+        dms <- stars::st_dimensions(x)
+        dms[[dm]] <- val
+        stars::st_dimensions(x) <- dms
+      }
+      x
+    })
+  }
+  result <- do.call(c, result)
+  Sys.setenv(GDAL_NUM_THREADS = numthr)
+
+  cli::cli_progress_done()
+  result
+}
+
+.subset_proxy <- function(mdim_proxy, region, timerange, verticalrange) {
   dms <- stars::st_dimensions(mdim_proxy)
   idx <- lapply(names(dms), \(dm) {
     idx_start  <- stars::st_get_dimension_values(mdim_proxy, dm, where = "start")
@@ -126,9 +171,9 @@ cms_download_subset <- function(
     comparator <- sort(comparator)
     idx <- if (length(comparator) == 0) rep(TRUE, length(idx_end)) else {
       (idx_end > comparator[[1]] & idx_end < comparator[[2]]) |
-      (idx_start %>=% comparator[[1]] & idx_start %<=% comparator[[2]]) |
+        (idx_start %>=% comparator[[1]] & idx_start %<=% comparator[[2]]) |
         (idx_end > comparator[[1]] & idx_start %<=% comparator[[2]])
-
+      
     }
     result <- which(idx)
     report_range <- range(c(idx_start, idx_end))
@@ -144,13 +189,13 @@ cms_download_subset <- function(
     } |> suppressWarnings()
     if (threshold) {
       rlang::warn(sprintf("Requested range '%s' well beyond available range [%s; %s]",
-                           dm, report_range[[1]], report_range[[2]]))
+                          dm, report_range[[1]], report_range[[2]]))
     }
     result
   })
-
+  
   mdim_proxy_sub <- rlang::inject(mdim_proxy[,!!!idx])
-
+  
   result <- .muffle_403({
     stars::st_as_stars(mdim_proxy_sub)
   })
@@ -164,9 +209,6 @@ cms_download_subset <- function(
     }
   }
   
-  Sys.setenv(GDAL_NUM_THREADS = numthr)
-
-  cli::cli_progress_done()
   result
 }
 
@@ -226,6 +268,9 @@ cms_download_subset <- function(
   omi            <- meta$assets[[1]]$omi
   ds4            <- meta$assets[[1]]$downsampled4
   
+  if (asset == "timeChunked") return(time_chunked)
+  if (asset == "geoChunked") return(geo_chunked)
+  
   if (asset == "default" && (!is.null(time_chunked) || !is.null(geo_chunked)))
     asset <- "ARCO"
   
@@ -240,8 +285,7 @@ cms_download_subset <- function(
     asset <- "ds4"
   }
   
-  if (asset == "ARCO") { ## Time or geo-chunked
-    
+  if (asset %in% c("ARCO", "timeChunked", "geoChunked")) {
     if (!is.null(time_chunked)) {
       indices_timec  <- .get_chunk_indices(subset_request, variables,
                                            time_chunked, dimnames, dim_properties)
@@ -386,17 +430,12 @@ cms_download_subset <- function(
 }
 
 .code_to_period <- function(x) {
-  switch(
-    x,
-    PT1H = lubridate::period(1, "hour"),
-    PT5H = lubridate::period(6, "hour"),
-    P1D = lubridate::period(1, "days"),
-    P1M = lubridate::period(1, "months"),
-    stop("Unknown time period '%s'", x)
-  )
+  x <- lubridate::period(x)
+  if (is.na(x)) stop("Unknown time period '%s'", x)
+  x
 }
 
-#' Get a proxy stars object from a Zarr service
+#' Get a Proxy 'stars' Object from a Zarr Service
 #' 
 #' `r lifecycle::badge('stable')` The advantage of
 #' [`stars_proxy` objects](https://r-spatial.github.io/stars/articles/stars2.html#stars-proxy-objects),

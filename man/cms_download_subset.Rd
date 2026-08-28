@@ -2,7 +2,7 @@
 % Please edit documentation in R/cms_download_subset.r
 \name{cms_download_subset}
 \alias{cms_download_subset}
-\title{Subset and download a specific marine product from Copernicus}
+\title{Subset and Download a Specific Marine Product from Copernicus}
 \usage{
 cms_download_subset(
   product,
@@ -44,7 +44,8 @@ When omitted, the entire available vertical range is selected.}
 Otherwise, this function will silently proceed.}
 
 \item{asset}{Type of asset to be used when subsetting data. Should be one
-of \code{"default"}, \code{"ARCO"}, \code{"static"}, \code{"omi"}, or \code{"downsampled4"}.
+of \code{"default"}, \code{"ARCO"}, \code{"static"}, \code{"omi"}, \code{"downsampled4"},
+"\code{timeChunked}", or \code{"geoChunked"}.
 When missing, set to \code{NULL} or set to \code{"default"}, it will use the first
 asset available for the requested product and layer, in the order as listed
 before.}
@@ -59,6 +60,7 @@ before.}
 }
 \value{
 Returns a \code{\link[stars:st_as_stars]{stars::st_as_stars()}} object.
+You can save it to a file with \code{\link[=cms_write_ncdf]{cms_write_ncdf()}}
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}} Subset and download a specific marine product

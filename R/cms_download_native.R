@@ -1,12 +1,12 @@
 #' @include generics.r
 NULL
 
-#' Navigate through CopernicusMarine native file via S3
+#' Navigate Through Copernicus Marine Native File via S3
 #' 
 #' `r lifecycle::badge('experimental')`
 #' Native files (i.e. files as provided by suppliers) are hosted with the
 #' [Amazon Simple Storage Service (s3)](https://aws.amazon.com/s3/).
-#' This function generates a [paws::s3()] object, that can be
+#' This function generates a [paws.storage::s3()] object, that can be
 #' used to navigate and download these files.
 #' 
 #' Note that alternative functions in this package provide more
@@ -14,12 +14,12 @@ NULL
 #'  * [cms_list_native_files()]
 #'  * [cms_download_native()]
 #'  * [cms_native_proxy()]
-#' @inheritParams paws::s3
+#' @inheritParams paws.storage::s3
 #' @param ... Ignored
-#' @returns Returns a [paws::s3()] object, specifically representing
+#' @returns Returns a [paws.storage::s3()] object, specifically representing
 #' the service that hosts Copernicus Marine native data.
 #' @examples
-#' if (interactive() && requireNamespace("paws")) {
+#' if (interactive() && requireNamespace("paws.storage")) {
 #'   my_s3 <- cms_native_s3()
 #'   my_s3$list_objects_v2("mdl-native-14", MaxKeys = 5)
 #' }
@@ -31,23 +31,25 @@ cms_native_s3 <- function(
     endpoint    = "https://s3.waw3-1.cloudferro.com",
     region      = "us-east-1",
     ...) {
-
-  if (requireNamespace("paws")) {
-    paws::s3(
+  
+  if (requireNamespace("paws.storage")) {
+    paws.storage::s3(
       config      = config,
       credentials = credentials,
       endpoint    = endpoint,
       region      = region
     )
   } else {
+    # nocov start
     rlang::abort(c(
-      x = "This function needs package 'paws'",
+      x = "This function needs package 'paws.storage'",
       i = "Please install and try again"
     ))
+    # nocov end
   }
 }
 
-#' Download raw files as provided to Copernicus Marine
+#' Download Raw Files as Provided to Copernicus Marine
 #' 
 #' `r lifecycle::badge('stable')` Full marine data sets can be downloaded using the functions
 #' documented here. Use `cms_list_native_files()` to list available files, and
@@ -68,7 +70,7 @@ cms_native_s3 <- function(
 #' @returns Returns `NULL` invisibly.
 #' @author Pepijn de Vries
 #' @examples
-#' if (interactive() && requireNamespace("paws")) {
+#' if (interactive() && requireNamespace("paws.storage")) {
 #'   cms_list_native_files(
 #'     product       = "GLOBAL_ANALYSISFORECAST_PHY_001_024",
 #'     layer         = "cmems_mod_glo_phy_anfc_0.083deg_PT1H-m",
@@ -104,9 +106,9 @@ cms_download_native <- function(destination, product, layer, pattern, prefix, pr
   if (missing(pattern)) pattern <- ""
   if (missing(prefix)) prefix <- ""
   .try_login(username, password)
-
+  
   file_list <- cms_list_native_files(product, layer, pattern, prefix)
-
+  
   for (i in nrow(file_list)) {
     path_out <- unlist(strsplit(file_list$Key[[i]], "/"))[-1:-2]
     file_out <- path_out[length(path_out)]
@@ -131,7 +133,7 @@ cms_download_native <- function(destination, product, layer, pattern, prefix, pr
     con_in <-
       httr2::request(url) |>
       httr2::req_perform_connection()
-
+    
     if (progress) cli::cli_inform("Downloading file {i} of {nrow(file_list)}.")
     if (progress) cli::cli_progress_bar(type = "download", total = as.numeric(file_list$Size))
     
@@ -186,7 +188,7 @@ cms_list_native_files <- function(product, layer, pattern, prefix, max = Inf, ..
     if (length(token) == 0 ||
         length(result) >= ifelse(is.null(max), Inf, max)) break
   }
-
+  
   result |> lapply(function(x) {
     x[lengths(x) == 1] |> as.data.frame()
   }) |>
@@ -229,7 +231,7 @@ cms_list_native_files <- function(product, layer, pattern, prefix, max = Inf, ..
   
 }
 
-#' Get a proxy stars object from a native service
+#' Get a Proxy 'stars' Object from a Native Service
 #' 
 #' `r lifecycle::badge('stable')` The advantage of
 #' [`stars_proxy` objects](https://r-spatial.github.io/stars/articles/stars2.html#stars-proxy-objects),
@@ -244,7 +246,7 @@ cms_list_native_files <- function(product, layer, pattern, prefix, max = Inf, ..
 #' If omitted it will include all variables in the layer.
 #' @returns A [`stars_proxy` object](https://r-spatial.github.io/stars/articles/stars2.html#stars-proxy-objects)
 #' @examples
-#' if (interactive() && requireNamespace("paws")) {
+#' if (interactive() && requireNamespace("paws.storage")) {
 #'   native_proxy <-
 #'     cms_native_proxy(
 #'       product       = "GLOBAL_ANALYSISFORECAST_PHY_001_024",
@@ -264,7 +266,7 @@ cms_native_proxy <- function(product, layer, pattern, prefix, variable, ...,
   if (missing(prefix)) prefix <- ""
   .try_login(username, password)
   if (missing(variable) || is.null(variable)) variable <- character(0)
-
+  
   file_list <- cms_list_native_files(product, layer, pattern, prefix)
   if (nrow(file_list) > 1)
     rlang::warn(c(
@@ -273,9 +275,9 @@ cms_native_proxy <- function(product, layer, pattern, prefix, variable, ...,
       i = "Add a specific 'pattern' to reduce the number of matches"
     ))
   file_list <- file_list[1,]
-
+  
   fmt <- if (grepl("\\.nc$|\\.ncf$|\\.ncdf$|\\.netcdf$|\\.h5$", file_list$Key) &
-      sf::st_drivers("raster", "^HDF5$")$vsi)
+             sf::st_drivers("raster", "^HDF5$")$vsi)
     "HDF5:%s" else "%s"
   paste0(
     "https://",

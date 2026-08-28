@@ -2,7 +2,7 @@
 % Please edit documentation in R/cms_download_native.R
 \name{cms_native_proxy}
 \alias{cms_native_proxy}
-\title{Get a proxy stars object from a native service}
+\title{Get a Proxy 'stars' Object from a Native Service}
 \usage{
 cms_native_proxy(
   product,
@@ -56,7 +56,7 @@ calling \code{\link[stars:st_as_stars]{stars::st_as_stars()}} or \code{plot()} o
 For more details see \code{vignette("proxy")}.
 }
 \examples{
-if (interactive() && requireNamespace("paws")) {
+if (interactive() && requireNamespace("paws.storage")) {
   native_proxy <-
     cms_native_proxy(
       product       = "GLOBAL_ANALYSISFORECAST_PHY_001_024",

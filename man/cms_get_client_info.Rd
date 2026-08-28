@@ -2,7 +2,7 @@
 % Please edit documentation in R/cms_catalogue_entry.R
 \name{cms_get_client_info}
 \alias{cms_get_client_info}
-\title{Get information about Copernicus Marine clients}
+\title{Get Information About Copernicus Marine Clients}
 \usage{
 cms_get_client_info(...)
 }
@@ -26,7 +26,8 @@ if (interactive()) {
 \seealso{
 Other supporting:
 \code{\link[=cms_glossary]{cms_glossary()}},
-\code{\link[=cms_translate]{cms_translate()}}
+\code{\link[=cms_translate]{cms_translate()}},
+\code{\link[=cms_write_ncdf]{cms_write_ncdf()}}
 }
 \author{
 Pepijn de Vries

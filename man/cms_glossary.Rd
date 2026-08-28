@@ -23,7 +23,7 @@ for a fuzzy match.}
 Returns a \code{data.frame} with glossary info.
 }
 \description{
-Function that returns a \code{data.frame} with a glossary of terminology
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#stable}{\figure{lifecycle-stable.svg}{options: alt='[Stable]'}}}{\strong{[Stable]}} Function that returns a \code{data.frame} with a glossary of terminology
 used by the Copernicus Marine Data Service. It is the same \code{data.frame}
 that is used to render \code{vignette("glossary")}.
 }
@@ -33,6 +33,7 @@ cms_glossary("variable", ignore.case = TRUE)
 \seealso{
 Other supporting:
 \code{\link[=cms_get_client_info]{cms_get_client_info()}},
-\code{\link[=cms_translate]{cms_translate()}}
+\code{\link[=cms_translate]{cms_translate()}},
+\code{\link[=cms_write_ncdf]{cms_write_ncdf()}}
 }
 \concept{supporting}
